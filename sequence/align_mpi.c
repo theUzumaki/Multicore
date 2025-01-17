@@ -339,6 +339,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEBUG
 	/* DEBUG: Print sequence and patterns */
+if (rank == 0){
 	printf("-----------------\n");
 	printf("Sequence: ");
 	for( lind=0; lind<seq_length; lind++ ) 
@@ -353,6 +354,7 @@ int main(int argc, char *argv[]) {
 		printf("\n");
 	}
 	printf("-----------------\n\n");
+}
 #endif // DEBUG
 
 	/* 2.3.2. Other results related to the main sequence */
@@ -433,15 +435,24 @@ int main(int argc, char *argv[]) {
 	MPI_Reduce(seq_matches, global_seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&pat_matches, &global_pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-
 	if (rank == 0) {
 		pat_matches = global_pat_matches;
-		memcpy(global_pat_found + pat_per_proc*num_procs, pat_found + pat_per_proc*num_procs, sizeof(unsigned long) * offset);
-		memcpy(pat_found, global_pat_found, sizeof(unsigned long) * pat_number);
+		unsigned long *limbo_array = (unsigned long *)malloc(sizeof(unsigned long) * pat_number);
+		memcpy(limbo_array, pat_found + pat_per_proc + offset, sizeof(unsigned long) * offset);
+		memcpy(limbo_array + pat_per_proc + offset, global_pat_found + pat_per_proc, sizeof(unsigned long) * (pat_number - offset));
+		memcpy(pat_found, limbo_array, sizeof(unsigned long) * pat_number);
 		memcpy(seq_matches, global_seq_matches, sizeof(int) * seq_length);
 		free(global_pat_found);
 		free(global_seq_matches);
 	}
+
+if (rank == 0){
+printf("FOUND:");
+for (int i = 0; i < pat_number; i++) {
+	printf(" %lu", pat_found[i]);
+}
+printf("\n");
+}
 
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;
@@ -457,9 +468,10 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEBUG
 	/* DEBUG: Write results */
+if (rank == 0){
 	printf("-----------------\n");
 	printf("Found start:");
-	for( debug_pat=0; debug_pat<pat_number; debug_pat++ ) {
+	for( int debug_pat=0; debug_pat<pat_number; debug_pat++ ) {
 		printf( " %lu", pat_found[debug_pat] );
 	}
 	printf("\n");
@@ -469,6 +481,7 @@ int main(int argc, char *argv[]) {
 		printf( " %d", seq_matches[lind] );
 	printf("\n");
 	printf("-----------------\n");
+}
 #endif // DEBUG
 
 	/* Free local resources */	
