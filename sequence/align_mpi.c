@@ -339,7 +339,6 @@ int main(int argc, char *argv[]) {
 
 #ifdef DEBUG
 	/* DEBUG: Print sequence and patterns */
-if (rank == 0){
 	printf("-----------------\n");
 	printf("Sequence: ");
 	for( lind=0; lind<seq_length; lind++ ) 
@@ -354,7 +353,6 @@ if (rank == 0){
 		printf("\n");
 	}
 	printf("-----------------\n\n");
-}
 #endif // DEBUG
 
 	/* 2.3.2. Other results related to the main sequence */
@@ -438,21 +436,14 @@ if (rank == 0){
 	if (rank == 0) {
 		pat_matches = global_pat_matches;
 		unsigned long *limbo_array = (unsigned long *)malloc(sizeof(unsigned long) * pat_number);
-		memcpy(limbo_array, pat_found + pat_per_proc + offset, sizeof(unsigned long) * offset);
-		memcpy(limbo_array + pat_per_proc + offset, global_pat_found + pat_per_proc, sizeof(unsigned long) * (pat_number - offset));
+		memcpy(limbo_array, pat_found, sizeof(unsigned long) * (pat_per_proc + offset));
+		memcpy(limbo_array + pat_per_proc + offset, global_pat_found + pat_per_proc, sizeof(unsigned long) * (pat_number - offset - pat_per_proc));
 		memcpy(pat_found, limbo_array, sizeof(unsigned long) * pat_number);
 		memcpy(seq_matches, global_seq_matches, sizeof(int) * seq_length);
 		free(global_pat_found);
 		free(global_seq_matches);
+		free(limbo_array);
 	}
-
-if (rank == 0){
-printf("FOUND:");
-for (int i = 0; i < pat_number; i++) {
-	printf(" %lu", pat_found[i]);
-}
-printf("\n");
-}
 
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;
@@ -468,10 +459,9 @@ printf("\n");
 
 #ifdef DEBUG
 	/* DEBUG: Write results */
-if (rank == 0){
 	printf("-----------------\n");
 	printf("Found start:");
-	for( int debug_pat=0; debug_pat<pat_number; debug_pat++ ) {
+	for( debug_pat=0; debug_pat<pat_number; debug_pat++ ) {
 		printf( " %lu", pat_found[debug_pat] );
 	}
 	printf("\n");
@@ -481,7 +471,6 @@ if (rank == 0){
 		printf( " %d", seq_matches[lind] );
 	printf("\n");
 	printf("-----------------\n");
-}
 #endif // DEBUG
 
 	/* Free local resources */	

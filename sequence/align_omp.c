@@ -367,29 +367,56 @@ int main(int argc, char *argv[]) {
 	/* 5. Search for each pattern */
 	unsigned long start;
 	int pat;
-	for( pat=0; pat < pat_number; pat++ ) {
+	
+	#pragma omp parallel private(start, lind, pat)
+	{
+		int* seq_matches_local = (int *)malloc( sizeof(int) * seq_length );
+		if (seq_matches_local == NULL) {
+			fprintf(stderr,"\n-- Error allocating seq_matches_local for size: %lu\n", seq_length );
+			exit( EXIT_FAILURE );
+		}
 
-		/* 5.1. For each posible starting position */
-		for( start=0; start <= seq_length - pat_length[pat]; start++) {
+		#pragma omp for reduction(+:pat_matches) schedule(dynamic)
+		for( pat=0; pat < pat_number; pat++ ) {
 
-			/* 5.1.1. For each pattern element */
-			for( lind=0; lind<pat_length[pat]; lind++) {
-				/* Stop this test when different nucleotids are found */
-				if ( sequence[start + lind] != pattern[pat][lind] ) break;
+			/* 5.1. For each possible starting position */
+			for( start=0; start <= seq_length - pat_length[pat]; start++) {
+
+				/* 5.1.1. For each pattern element */
+				for( lind=0; lind<pat_length[pat]; lind++) {
+					/* Stop this test when different nucleotids are found */
+					if ( sequence[start + lind] != pattern[pat][lind] ) break;
+				}
+				/* 5.1.2. Check if the loop ended with a match */
+				if ( lind == pat_length[pat] ) {
+					#pragma omp atomic
+					pat_matches++;
+					pat_found[pat] = start;
+					break;
+				}
 			}
-			/* 5.1.2. Check if the loop ended with a match */
-			if ( lind == pat_length[pat] ) {
-				pat_matches++;
-				pat_found[pat] = start;
-				break;
+
+			/* 5.2. Pattern found */
+			if ( pat_found[pat] != (unsigned long)NOT_FOUND ) {
+				/* 4.2.1. Increment the number of pattern matches on the sequence positions */
+				increment_matches( pat, pat_found, pat_length, seq_matches_local );
 			}
 		}
 
-		/* 5.2. Pattern found */
-		if ( pat_found[pat] != (unsigned long)NOT_FOUND ) {
-			/* 4.2.1. Increment the number of pattern matches on the sequence positions */
-			increment_matches( pat, pat_found, pat_length, seq_matches );
+		for (lind = 0; lind < seq_length; lind++) {
+			int matches = seq_matches_local[lind];
+			if (matches != NOT_FOUND) {
+				if (matches == 0) {
+					#pragma omp atomic
+					seq_matches[lind]++;
+				}
+				else {
+					#pragma omp atomic
+					seq_matches[lind] += matches;
+				}
+			}
 		}
+		free(seq_matches_local);
 	}
 
 	/* 7. Check sums */

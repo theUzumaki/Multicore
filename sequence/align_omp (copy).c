@@ -2,7 +2,7 @@
  * Exact genetic sequence alignment
  * (Using brute force)
  *
- * Reference sequential version (Do not modify this code)
+ * OpenMP version
  *
  * Computacion Paralela, Grado en Informatica (Universidad de Valladolid)
  * 2023/2024
@@ -16,6 +16,7 @@
 #include<string.h>
 #include<limits.h>
 #include<sys/time.h>
+#include<omp.h>
 
 
 /* Arbitrary value to indicate that no matches are found */
@@ -117,6 +118,7 @@ char *pattern_allocate( rng_t *random, unsigned long pat_rng_length_mean, unsign
 	return pattern;
 }
 
+
 /*
  * Function: Regenerate a sample of the sequence
  */
@@ -203,14 +205,9 @@ int main(int argc, char *argv[]) {
 #endif // DEBUG
 
 	/* 2. Initialize data structures */
-	/* 2.1. Allocate and fill sequence */
-	char *sequence = (char *)malloc( sizeof(char) * seq_length );
-	if ( sequence == NULL ) {
-		fprintf(stderr,"\n-- Error allocating the sequence for size: %lu\n", seq_length );
-		exit( EXIT_FAILURE );
-	}
+	/* 2.1. Skip allocate and fill sequence */
 	rng_t random = rng_new( seed );
-	generate_rng_sequence( &random, prob_G, prob_C, prob_A, sequence, seq_length);
+	rng_skip( &random, seq_length );
 
 	/* 2.2. Allocate and fill patterns */
 	/* 2.2.1 Allocate main structures */
@@ -274,6 +271,7 @@ int main(int argc, char *argv[]) {
 		}
 		else if ( pat_type[ind] == PAT_TYPE_SAMP ) {
 			pattern[ind] = pattern_allocate( &random, pat_samp_length_mean, pat_samp_length_dev, seq_length, &pat_length[ind] );
+#define REGENERATE_SAMPLE_PATTERNS
 #ifdef REGENERATE_SAMPLE_PATTERNS
 			rng_t random_seq_orig = rng_new( seed );
 			generate_sample_sequence( &random, random_seq_orig, prob_G, prob_C, prob_A, seq_length, pat_samp_loc_mean, pat_samp_loc_dev, pattern[ind], pat_length[ind] );
@@ -287,24 +285,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	free( pat_type );
-
-#ifdef DEBUG
-	/* DEBUG: Print sequence and patterns */
-	printf("-----------------\n");
-	printf("Sequence: ");
-	for( ind=0; ind<seq_length; ind++ ) 
-		printf( "%c", sequence[ind] );
-	printf("\n-----------------\n");
-	printf("Patterns: %d ( rng: %d, samples: %d )\n", pat_number, pat_rng_num, pat_samp_num );
-	int debug_pat;
-	for( debug_pat=0; debug_pat<pat_number; debug_pat++ ) {
-		printf( "Pat[%d]: ", debug_pat );
-		for( ind=0; ind<pat_length[debug_pat]; ind++ ) 
-			printf( "%c", pattern[debug_pat][ind] );
-		printf("\n");
-	}
-	printf("-----------------\n\n");
-#endif // DEBUG
 
 	/* Avoid the usage of arguments to take strategic decisions
 	 * In a real case the user only has the patterns and sequence data to analize
@@ -331,14 +311,6 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr,"\n-- Error allocating aux pattern structure for size: %d\n", pat_number );
 		exit( EXIT_FAILURE );
 	}
-	/* 2.3.2. Other results related to the main sequence */
-	int *seq_matches;
-	seq_matches = (int *)malloc( sizeof(int) * seq_length );
-	if ( seq_matches == NULL ) {
-		fprintf(stderr,"\n-- Error allocating aux sequence structures for size: %lu\n", seq_length );
-		exit( EXIT_FAILURE );
-	}
-
 	
 	/* 3. Start global timer */
 	double ttotal = cp_Wtime();
@@ -348,6 +320,41 @@ int main(int argc, char *argv[]) {
  * START HERE: DO NOT CHANGE THE CODE ABOVE THIS POINT
  *
  */
+	/* 2.1. Allocate and fill sequence */
+	char *sequence = (char *)malloc( sizeof(char) * seq_length );
+	if ( sequence == NULL ) {
+		fprintf(stderr,"\n-- Error allocating the sequence for size: %lu\n", seq_length );
+		exit( EXIT_FAILURE );
+	}
+
+	random = rng_new( seed );
+	generate_rng_sequence( &random, prob_G, prob_C, prob_A, sequence, seq_length);
+
+#ifdef DEBUG
+	/* DEBUG: Print sequence and patterns */
+	printf("-----------------\n");
+	printf("Sequence: ");
+	for( lind=0; lind<seq_length; lind++ ) 
+		printf( "%c", sequence[lind] );
+	printf("\n-----------------\n");
+	printf("Patterns: %d ( rng: %d, samples: %d )\n", pat_number, pat_rng_num, pat_samp_num );
+	int debug_pat;
+	for( debug_pat=0; debug_pat<pat_number; debug_pat++ ) {
+		printf( "Pat[%d]: ", debug_pat );
+		for( lind=0; lind<pat_length[debug_pat]; lind++ ) 
+			printf( "%c", pattern[debug_pat][lind] );
+		printf("\n");
+	}
+	printf("-----------------\n\n");
+#endif // DEBUG
+
+	/* 2.3.2. Other results related to the main sequence */
+	int *seq_matches;
+	seq_matches = (int *)malloc( sizeof(int) * seq_length );
+	if ( seq_matches == NULL ) {
+		fprintf(stderr,"\n-- Error allocating aux sequence structures for size: %lu\n", seq_length );
+		exit( EXIT_FAILURE );
+	}
 
 	/* 4. Initialize ancillary structures */
 	for( ind=0; ind<pat_number; ind++) {
@@ -360,9 +367,11 @@ int main(int argc, char *argv[]) {
 	/* 5. Search for each pattern */
 	unsigned long start;
 	int pat;
+
+	#pragma omp parallel for private(start, lind) reduction(+:pat_matches) schedule(dynamic)
 	for( pat=0; pat < pat_number; pat++ ) {
 
-		/* 5.1. For each posible starting position */
+		/* 5.1. For each possible starting position */
 		for( start=0; start <= seq_length - pat_length[pat]; start++) {
 
 			/* 5.1.1. For each pattern element */
@@ -372,6 +381,7 @@ int main(int argc, char *argv[]) {
 			}
 			/* 5.1.2. Check if the loop ended with a match */
 			if ( lind == pat_length[pat] ) {
+				#pragma omp atomic
 				pat_matches++;
 				pat_found[pat] = start;
 				break;
@@ -381,7 +391,10 @@ int main(int argc, char *argv[]) {
 		/* 5.2. Pattern found */
 		if ( pat_found[pat] != (unsigned long)NOT_FOUND ) {
 			/* 4.2.1. Increment the number of pattern matches on the sequence positions */
-			increment_matches( pat, pat_found, pat_length, seq_matches );
+			#pragma omp critical
+			{
+				increment_matches( pat, pat_found, pat_length, seq_matches );
+			}
 		}
 	}
 
