@@ -391,6 +391,7 @@ int main(int argc, char *argv[]) {
 				if ( lind == pat_length[pat] ) {
 					#pragma omp atomic
 					pat_matches++;
+					#pragma omp atomic write
 					pat_found[pat] = start;
 					break;
 				}
