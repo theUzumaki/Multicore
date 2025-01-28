@@ -376,7 +376,7 @@ int main(int argc, char *argv[]) {
 			exit( EXIT_FAILURE );
 		}
 
-		#pragma omp for reduction(+:pat_matches) schedule(dynamic)
+		#pragma omp for reduction(+:pat_matches) schedule(static)
 		for( pat=0; pat < pat_number; pat++ ) {
 
 			/* 5.1. For each possible starting position */
@@ -391,7 +391,6 @@ int main(int argc, char *argv[]) {
 				if ( lind == pat_length[pat] ) {
 					#pragma omp atomic
 					pat_matches++;
-					#pragma omp atomic write
 					pat_found[pat] = start;
 					break;
 				}
