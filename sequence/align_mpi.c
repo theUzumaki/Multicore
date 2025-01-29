@@ -408,8 +408,8 @@ int main(int argc, char *argv[]) {
 	cudaDeviceProp dp;
 	cudaGetDeviceProperties(&dp, 0)
 	int threadsPerBlock = dp.maxThreadsPerBlock;
-	int proc_num= (pat_rng_num + pat_samp_num) / threadsPerBlock;
-	if (((pat_rng_num + pat_samp_num) % threadsPerBlock) != 0) proc_num++;
+	int proc_num= 4;
+	//if (((pat_rng_num + pat_samp_num) % threadsPerBlock) != 0) proc_num++;
 
 	// Allocate device memory
 	char *d_sequence;
