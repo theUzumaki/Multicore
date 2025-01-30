@@ -419,6 +419,12 @@ int main(int argc, char *argv[]) {
 		free(seq_matches_local);
 	}
 
+printf("Seq matches: ");
+for (lind = 0; lind < seq_length; lind++) {
+	printf("%d ", seq_matches[lind]);
+}
+printf("\n");
+
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;
 	unsigned long checksum_found = 0;
