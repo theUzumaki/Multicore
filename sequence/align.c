@@ -385,6 +385,12 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+printf("Sequence: ");
+for (lind = 0; lind < seq_length; lind++) {
+	printf("%c", sequence[lind]);
+}
+printf("\n");
+
 printf("Seq matches: ");
 for (lind = 0; lind < seq_length; lind++) {
 	printf("%d ", seq_matches[lind]);
