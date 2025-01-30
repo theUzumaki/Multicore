@@ -441,7 +441,7 @@ int main(int argc, char *argv[]) {
 	// Divide work among processes
 	pat_per_proc = (pat_number + proc_num - 1) / proc_num;
 	start_pat = rank * pat_per_proc;
-	end_pat = min(start_pat + pat_per_proc, pat_number);
+	end_pat = std::min(start_pat + pat_per_proc, pat_number);
 
 	// Launch kernel for each process
 	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
