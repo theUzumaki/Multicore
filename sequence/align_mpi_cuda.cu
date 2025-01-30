@@ -407,7 +407,7 @@ int main(int argc, char *argv[]) {
 	// Processes number and threads per block
 	int proc_num;
 	cudaDeviceProp dp;
-	cudaGetDeviceProperties(&dp, 0)
+	cudaGetDeviceProperties(&dp, 0);
 	MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
 	int threadsPerBlock = dp.maxThreadsPerBlock;
 
