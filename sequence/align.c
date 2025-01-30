@@ -117,6 +117,7 @@ char *pattern_allocate( rng_t *random, unsigned long pat_rng_length_mean, unsign
 	return pattern;
 }
 
+
 /*
  * Function: Regenerate a sample of the sequence
  */
@@ -384,18 +385,6 @@ int main(int argc, char *argv[]) {
 			increment_matches( pat, pat_found, pat_length, seq_matches );
 		}
 	}
-
-printf("Sequence: ");
-for (lind = 0; lind < seq_length; lind++) {
-	printf("%c", sequence[lind]);
-}
-printf("\n");
-
-printf("Seq matches: ");
-for (lind = 0; lind < seq_length; lind++) {
-	printf("%d ", seq_matches[lind]);
-}
-printf("\n");
 
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;
