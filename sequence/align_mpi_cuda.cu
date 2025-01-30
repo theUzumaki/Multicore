@@ -401,8 +401,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* 5. Search for each pattern */
-	unsigned long start;
-	int pat, pat_per_proc, start_pat, end_pat;
+	int pat_per_proc, start_pat, end_pat;
 
 	// Processes number and threads per block
 	int proc_num;
@@ -462,7 +461,7 @@ int main(int argc, char *argv[]) {
 	cudaFree(d_pat_matches);
 
 	// Gather results from all processes
-	MPI_Reduce(pat_found, global_pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, MPI_COMM_WORLD);
+	MPI_Reduce(pat_found, global_pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 	MPI_Reduce(seq_matches, global_seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&pat_matches, &global_pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
