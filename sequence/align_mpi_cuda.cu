@@ -424,7 +424,7 @@ int main(int argc, char *argv[]) {
 	// Allocate device memory
 	char *d_sequence;
 	char **d_patterns;
-	int *d_seq_matches, d_pat_matches;
+	int *d_seq_matches, *d_pat_matches;
 	unsigned long *d_pat_length, *d_pat_found;
 
 	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
@@ -440,9 +440,9 @@ int main(int argc, char *argv[]) {
 	cudaMemcpy(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
 	// Divide work among processes
-	int pat_per_proc = (pat_number + num_procs - 1) / num_procs;
-	int start_pat = rank * pat_per_proc;
-	int end_pat = min(start_pat + pat_per_proc, pat_number);
+	pat_per_proc = (pat_number + proc_num - 1) / proc_num;
+	start_pat = rank * pat_per_proc;
+	end_pat = min(start_pat + pat_per_proc, pat_number);
 
 	// Launch kernel for each process
 	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
