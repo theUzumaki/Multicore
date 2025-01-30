@@ -389,7 +389,6 @@ int main(int argc, char *argv[]) {
 				}
 				/* 5.1.2. Check if the loop ended with a match */
 				if ( lind == pat_length[pat] ) {
-					#pragma omp atomic
 					pat_matches++;
 					pat_found[pat] = start;
 					break;
