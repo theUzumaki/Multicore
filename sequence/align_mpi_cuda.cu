@@ -33,7 +33,7 @@
 #define CHECKSUM_MAX	65535
 
 
-/* 
+/*
  * Utils: Function to get wall time
  */
 double cp_Wtime(){
@@ -450,7 +450,7 @@ int main(int argc, char *argv[]) {
 	// Copy results back to host
 	cudaMemcpy(pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost);
 	cudaMemcpy(seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
-	cudaMemcpy(pat_matches, d_pat_matches, sizeof(int) * 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&pat_matches, d_pat_matches, sizeof(int) * 1, cudaMemcpyDeviceToHost);
 
 	// Free device memory
 	cudaFree(d_sequence);

@@ -221,3 +221,99 @@
 
 	Job terminated of its own accord at 2025-01-28T13:24:54Z with exit-code 0.
 ...
+000 (285929.000.000) 2025-01-28 14:09:16 Job submitted from host: <192.168.0.102:9618?addrs=192.168.0.102-9618&alias=submitter&noUDP&sock=schedd_2032_5c88>
+...
+014 (285929.000.000) 2025-01-28 14:09:18 Node 0 executing on host: <192.168.0.148:9618?addrs=192.168.0.148-9618&alias=node148.di.rm1&noUDP&sock=startd_1547_b119>
+...
+001 (285929.000.000) 2025-01-28 14:09:18 Job executing on host: MPI_job
+...
+008 (285929.000.000) 2025-01-28 14:09:20 Launching orted on Node 0 of 1
+...
+008 (285929.000.000) 2025-01-28 14:09:22 orted exited on Node 0 of 1
+...
+015 (285929.000.000) 2025-01-28 14:09:22 Node 0 terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:00:06, Sys 0 00:00:00  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:00:06, Sys 0 00:00:00  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	1098  -  Run Bytes Sent By Node
+	33215  -  Run Bytes Received By Node
+	1098  -  Total Bytes Sent By Node
+	33215  -  Total Bytes Received By Node
+...
+005 (285929.000.000) 2025-01-28 14:09:22 Job terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:00:06, Sys 0 00:00:00  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:00:06, Sys 0 00:00:00  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	1098  -  Run Bytes Sent By Job
+	33215  -  Run Bytes Received By Job
+	1098  -  Total Bytes Sent By Job
+	33215  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 4         8 
+	   Disk (KB)            :       46       35    467548 
+	   Memory (MB)          :        0        0       128 
+
+	Job terminated of its own accord at 2025-01-28T14:09:22Z with exit-code 0.
+...
+000 (291013.000.000) 2025-01-29 15:45:05 Job submitted from host: <192.168.0.102:9618?addrs=192.168.0.102-9618&alias=submitter&noUDP&sock=schedd_2032_5c88>
+...
+014 (291013.000.000) 2025-01-29 15:54:10 Node 0 executing on host: <192.168.0.123:9618?addrs=192.168.0.123-9618&alias=node123.di.rm1&noUDP&sock=startd_2149_9d1d>
+...
+001 (291013.000.000) 2025-01-29 15:54:10 Job executing on host: MPI_job
+...
+008 (291013.000.000) 2025-01-29 15:54:12 Launching orted on Node 0 of 1
+...
+008 (291013.000.000) 2025-01-29 15:54:14 orted exited on Node 0 of 1
+...
+015 (291013.000.000) 2025-01-29 15:54:14 Node 0 terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:00:06, Sys 0 00:00:00  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:00:06, Sys 0 00:00:00  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	1142  -  Run Bytes Sent By Node
+	33215  -  Run Bytes Received By Node
+	1142  -  Total Bytes Sent By Node
+	33215  -  Total Bytes Received By Node
+...
+005 (291013.000.000) 2025-01-29 15:54:14 Job terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:00:06, Sys 0 00:00:00  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:00:06, Sys 0 00:00:00  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	1142  -  Run Bytes Sent By Job
+	33215  -  Run Bytes Received By Job
+	1142  -  Total Bytes Sent By Job
+	33215  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated 
+	   Cpus                 :                 4        16 
+	   Disk (KB)            :       46       35    499900 
+	   GPUs                 :                           0 
+	   Memory (MB)          :        0       11       128 
+
+	Job terminated of its own accord at 2025-01-29T15:54:14Z with exit-code 0.
+...
+009 (283098.000.000) 2025-01-30 12:08:56 Job was aborted.
+	via condor_rm (by user condor)
+...
+009 (283095.000.000) 2025-01-30 12:08:56 Job was aborted.
+	via condor_rm (by user condor)
+...
+009 (283089.000.000) 2025-01-30 12:08:56 Job was aborted.
+	via condor_rm (by user condor)
+...
+000 (293612.000.000) 2025-01-30 14:13:31 Job submitted from host: <192.168.0.102:9618?addrs=192.168.0.102-9618&alias=submitter&noUDP&sock=schedd_4045053_7bc0>
+...
+009 (293612.000.000) 2025-01-30 14:20:01 Job was aborted.
+	via condor_rm (by user maiorano_2009650)
+...
+000 (293615.000.000) 2025-01-30 14:20:42 Job submitted from host: <192.168.0.102:9618?addrs=192.168.0.102-9618&alias=submitter&noUDP&sock=schedd_4045053_7bc0>
+...
+009 (293615.000.000) 2025-01-30 14:26:00 Job was aborted.
+	via condor_rm (by user maiorano_2009650)
+...
