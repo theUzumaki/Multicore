@@ -20,6 +20,6 @@ request_cpus = 4
 getenv = True
 
 request_gpus = 4
-request_cpus = 1
+request_cpus = 4
 
 queue
