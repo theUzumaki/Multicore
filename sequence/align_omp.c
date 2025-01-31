@@ -55,14 +55,11 @@ void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_le
 	unsigned long ind;
 
 	for( ind=0; ind<pat_length[pat]; ind++) {
-printf("start: %lu + %lu", pat_found[pat], ind);
 		if ( seq_matches[ pat_found[pat] + ind ] == NOT_FOUND )
 			seq_matches[ pat_found[pat] + ind ] = 0;
 		else
 			seq_matches[ pat_found[pat] + ind ] ++;
-printf(" - ended\n");
 	}
-printf(" EXITED\n");
 }
 
 /*
@@ -371,20 +368,15 @@ int main(int argc, char *argv[]) {
 	/* 5. Search for each pattern */
 	unsigned long start;
 	int pat;
-	
-printf("TOTAL: %lu\n", seq_length);
-omp_set_num_threads(1);
 
-printf("THREAD START\n");
 		/*
 		int* seq_matches_local = (int *)malloc( sizeof(int) * seq_length );
 		if (seq_matches_local == NULL) {
 			fprintf(stderr,"\n-- Error allocating seq_matches_local for size: %lu\n", seq_length );
 			exit( EXIT_FAILURE );
-		}
-*/
-		#pragma omp for reduction(+:pat_matches) reduction (+:seq_matches[seq_length]) schedule(static)
-		for( pat=0; pat < pat_number; pat++ ) {
+		}*/
+	#pragma omp parallel for reduction(+:pat_matches) schedule(static)
+	for( pat=0; pat < pat_number; pat++ ) {
 
 			/* 5.1. For each possible starting position */
 			for( start=0; start <= seq_length - pat_length[pat]; start++) {
@@ -402,13 +394,13 @@ printf("THREAD START\n");
 				}
 			}
 
-			/* 5.2. Pattern found */
-			if ( pat_found[pat] != (unsigned long)NOT_FOUND ) {
-				/* 4.2.1. Increment the number of pattern matches on the sequence positions */
-				increment_matches( pat, pat_found, pat_length, seq_matches );
-printf("  EXITED FROM FUNC\n");
-			}
+		/* 5.2. Pattern found */
+		if ( pat_found[pat] != (unsigned long)NOT_FOUND ) {
+			/* 4.2.1. Increment the number of pattern matches on the sequence positions */
+			#pragma omp critical 
+			increment_matches( pat, pat_found, pat_length, seq_matches );
 		}
+	}
 /*
 		for (lind = 0; lind < seq_length; lind++) {
 			int matches = seq_matches_local[lind];
