@@ -369,7 +369,7 @@ int main(int argc, char *argv[]) {
 	unsigned long start;
 	int pat;
 
-	#pragma omp parallel for private(start, lind) reduction(+:pat_matches)
+	#pragma omp parallel for private(start, lind) reduction(+:pat_matches) reduction(+:seq_matches[:seq_length])
 	for( pat=0; pat < pat_number; pat++ ) {
 
 		/* 5.1. For each possible starting position */
@@ -394,7 +394,6 @@ int main(int argc, char *argv[]) {
 		/* 5.2. Pattern found */
 		if ( pat_found[pat] != (unsigned long)NOT_FOUND ) {
 			/* 4.2.1. Increment the number of pattern matches on the sequence positions */
-			#pragma omp critical
 			increment_matches( pat, pat_found, pat_length, seq_matches );
 		}
 	}
