@@ -14,12 +14,11 @@ output = out.$(NODE)
 error = err.$(NODE)
 log = log
 
-machine_count = 1
+machine_count = 4
 request_cpus = 4
 
 getenv = True
 
 request_gpus = 4
-request_cpus = 4
 
 queue

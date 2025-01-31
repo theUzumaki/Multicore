@@ -56,6 +56,7 @@ double cp_Wtime(){
 
 
 __global__ void search_patterns(int* pat_matches, char *sequence, char **patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
+printf("INSIDE");
 	int pat = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pat >= pat_number) return;
 
@@ -408,6 +409,7 @@ int main(int argc, char *argv[]) {
 	cudaDeviceProp dp;
 	cudaGetDeviceProperties(&dp, 0);
 	MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
+	cudaSetDevice(rank);
 	int threadsPerBlock = dp.maxThreadsPerBlock;
 
 	// Global variables to gather results from all processes
@@ -425,7 +427,7 @@ int main(int argc, char *argv[]) {
 	char **d_patterns;
 	int *d_seq_matches, *d_pat_matches;
 	unsigned long *d_pat_length, *d_pat_found;
-
+printf("EXECUTING\n");
 	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
 	cudaMalloc(&d_patterns, sizeof(char*) * pat_number);
 	cudaMalloc(&d_pat_length, sizeof(unsigned long) * pat_number);
@@ -446,7 +448,10 @@ int main(int argc, char *argv[]) {
 	// Launch kernel for each process
 	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
 	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(d_pat_matches, d_sequence, d_patterns + start_pat, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches, seq_length, end_pat - start_pat);
-
+cudaError_t err = cudaGetLastError();
+if (err != cudaSuccess) 
+    printf("Error: %s\n", cudaGetErrorString(err));
+CUDA_CHECK_KERNEL();
 	// Copy results back to host
 	cudaMemcpy(pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost);
 	cudaMemcpy(seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
