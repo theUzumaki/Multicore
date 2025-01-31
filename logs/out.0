@@ -1,4 +1,8 @@
+Process: 0 of 2, running on 0 will spawn 1 blocks per grid and 1024 threads for block
+Process 0 will work from 0 to 200 for a total of 200
+Process: 1 of 2, running on 0 will spawn 1 blocks per grid and 1024 threads for block
+Process 1 will work from 200 to 400 for a total of 200
 
-Time: 0.040188
-Result: 10000, 31870, 34193
+Time: 0.287387
+Result: 0, 0, 0
 

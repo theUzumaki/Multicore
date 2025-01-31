@@ -56,7 +56,6 @@ double cp_Wtime(){
 
 
 __global__ void search_patterns(int* pat_matches, char *sequence, char **patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
-printf("INSIDE");
 	int pat = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pat >= pat_number) return;
 
@@ -402,17 +401,29 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* 5. Search for each pattern */
-	int pat_per_proc, start_pat, end_pat;
 
-	// Processes number and threads per block
-	int proc_num;
-	cudaDeviceProp dp;
-	cudaGetDeviceProperties(&dp, 0);
-	MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
+	// Processes number
+        int proc_num;
+        cudaDeviceProp dp;
+        cudaGetDeviceProperties(&dp, 0);
+        MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
+
+        // Divide work among processes
+	int pat_per_proc, start_pat, end_pat;
+        pat_per_proc = (pat_number + proc_num - 1) / proc_num;
+        start_pat = rank * pat_per_proc;
+        end_pat = std::min(start_pat + pat_per_proc, pat_number);
+
+	// Blocks and threads
 	int device_num;
 	cudaGetDeviceCount(&device_num);
 	cudaSetDevice(rank % device_num);
+
 	int threadsPerBlock = dp.maxThreadsPerBlock;
+	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
+
+printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\n", rank, proc_num, rank % device_num, blocksPerGrid, threadsPerBlock);
+printf("Process %d will work from %d to %d for a total of %d\n", rank, start_pat, end_pat, pat_per_proc);
 
 	// Global variables to gather results from all processes
 	unsigned long *global_pat_found = NULL;
@@ -442,15 +453,9 @@ int main(int argc, char *argv[]) {
 	cudaMemcpy(d_patterns, pattern, sizeof(char*) * pat_number, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
-	// Divide work among processes
-	pat_per_proc = (pat_number + proc_num - 1) / proc_num;
-	start_pat = rank * pat_per_proc;
-	end_pat = std::min(start_pat + pat_per_proc, pat_number);
-
 	// Launch kernel for each process
-	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
 	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(d_pat_matches, d_sequence, d_patterns + start_pat, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches, seq_length, end_pat - start_pat);
-CUDA_CHECK_KERNEL();
+	CUDA_CHECK_KERNEL();
 
 	// Copy results back to host
 	cudaMemcpy(pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost);
