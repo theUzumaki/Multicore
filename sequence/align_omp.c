@@ -369,67 +369,36 @@ int main(int argc, char *argv[]) {
 	unsigned long start;
 	int pat;
 
-		/*
-		int* seq_matches_local = (int *)malloc( sizeof(int) * seq_length );
-		if (seq_matches_local == NULL) {
-			fprintf(stderr,"\n-- Error allocating seq_matches_local for size: %lu\n", seq_length );
-			exit( EXIT_FAILURE );
-		}*/
-	#pragma omp parallel for reduction(+:pat_matches) schedule(static)
+	#pragma omp parallel for private(start, lind) reduction(+:pat_matches)
 	for( pat=0; pat < pat_number; pat++ ) {
 
-			/* 5.1. For each possible starting position */
-			for( start=0; start <= seq_length - pat_length[pat]; start++) {
+		/* 5.1. For each possible starting position */
+		for( start=0; start <= seq_length - pat_length[pat]; start++) {
 
-				/* 5.1.1. For each pattern element */
-				for( lind=0; lind<pat_length[pat]; lind++) {
-					/* Stop this test when different nucleotids are found */
-					if ( sequence[start + lind] != pattern[pat][lind] ) break;
-				}
-				/* 5.1.2. Check if the loop ended with a match */
-				if ( lind == pat_length[pat] ) {
+			/* 5.1.1. For each pattern element */
+			for( lind=0; lind<pat_length[pat]; lind++) {
+				/* Stop this test when different nucleotids are found */
+				if ( sequence[start + lind] != pattern[pat][lind] ) break;
+			}
+			/* 5.1.2. Check if the loop ended with a match */
+			if ( lind == pat_length[pat] ) {
+				#pragma omp critical
+				{
 					pat_matches++;
 					pat_found[pat] = start;
-					break;
 				}
+				break;
 			}
+		}
 
 		/* 5.2. Pattern found */
 		if ( pat_found[pat] != (unsigned long)NOT_FOUND ) {
 			/* 4.2.1. Increment the number of pattern matches on the sequence positions */
-			#pragma omp critical 
+			#pragma omp critical
 			increment_matches( pat, pat_found, pat_length, seq_matches );
 		}
 	}
-/*
-		for (lind = 0; lind < seq_length; lind++) {
-			int matches = seq_matches_local[lind];
-			if (matches != NOT_FOUND) {
-				if (matches == 0) {
-					#pragma omp atomic
-					seq_matches[lind]++;
-				}
-				else {
-					#pragma omp atomic
-					seq_matches[lind] += matches;
-				}
-			}
-		}
-		free(seq_matches_local);*/
 
-/*
-printf("Sequence: ");
-for (lind = 0; lind < seq_length; lind++) {
-	printf("%c", sequence[lind]);
-}
-printf("\n");
-
-printf("Seq matches: ");
-for (lind = 0; lind < seq_length; lind++) {
-	printf("%d ", seq_matches[lind]);
-}
-printf("\n");
-*/
 
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;
@@ -440,7 +409,7 @@ printf("\n");
 	}
 	for( lind=0; lind < seq_length; lind++) {
 		if ( seq_matches[lind] != NOT_FOUND )
-			checksum_matches = ( checksum_matches + seq_matches[lind] ) % CHECKSUM_MAX;
+			checksum_matches = ( checksum_matches + seq_matches[lind]) % CHECKSUM_MAX;
 	}
 
 #ifdef DEBUG
