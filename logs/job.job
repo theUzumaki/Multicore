@@ -16,7 +16,7 @@ error = err.$(NODE)
 log = log
 
 machine_count = 1
-request_cpus = 1
+request_cpus = 2
 
 getenv = True
 

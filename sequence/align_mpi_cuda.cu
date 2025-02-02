@@ -60,18 +60,18 @@ __global__ void search_patterns(int pat_max_length, int* pat_matches, char *sequ
 	if (pat >= pat_number) return;
 
 	int start, lind;
-	for (start = 0; start <= seq_length - pat_length[pat]; start++) {
+	int pattern_length= pat_length[pat];
+	for (start = 0; start <= seq_length - pattern_length; start++) {
 		int counter= 0;
-//printf("\n------\n");
-		for (lind = 0; lind < pat_length[pat]; lind++) {
+		for (lind = 0; lind < pattern_length; lind++) {
 			if (sequence[start + lind] == patterns[pat * pat_max_length + lind]) counter++;
-//printf("sequence-> %c - %c <-pattern\n", sequence[start + lind], patterns[pat * pat_max_length + lind]);
 		}
-		if (counter == pat_length[pat]) {
+		if (counter == pattern_length) {
 			atomicAdd(pat_matches, 1);
 			pat_found[pat] = start;
-			for (lind = 0; lind < pat_length[pat]; lind++) {
-				atomicAdd(&seq_matches[start + lind], 1);
+			for (lind = 0; lind < pattern_length; lind++) {
+				if (seq_matches[start + lind] == NOT_FOUND) seq_matches[start + lind]= 0;
+				else atomicAdd(&seq_matches[start + lind], 1);
 			}
 			break;
 		}
@@ -425,23 +425,18 @@ int main(int argc, char *argv[]) {
 	int threadsPerBlock = dp.maxThreadsPerBlock;
 	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
 printf("Total device: %d\n", device_num);
-printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\n", rank, proc_num, rank % device_num, blocksPerGrid, threadsPerBlock);
+printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\nStarting from %d to %d\n",
+	rank, proc_num, rank % device_num, blocksPerGrid, threadsPerBlock, start_pat, end_pat);
 
-	// Global variables to gather results from all processes
-	unsigned long *global_pat_found = NULL;
-	int *global_seq_matches = NULL;
-	int global_pat_matches = 0;
+	// Local variables to gather results from all processes
+	unsigned long *local_pat_found = (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
+	int *local_seq_matches = (int *)malloc(sizeof(int) * seq_length);
+	int local_pat_matches;
 
-	if (rank == 0) {
-		global_pat_found = (unsigned long *)malloc(sizeof(unsigned long) * pat_number);
-		global_seq_matches = (int *)malloc(sizeof(int) * seq_length);
+	unsigned long max_pat_length= 0;
+	for (int i = 0; i < pat_number; i++){
+		if (max_pat_length < pat_length[i]) max_pat_length= pat_length[i];
 	}
-
-unsigned long max_pat_length= 0;
-for (int i = 0; i < pat_number; i++){
-	if (max_pat_length < pat_length[i]) max_pat_length= pat_length[i];
-}
-//printf("SEQUENCE: %s\n", sequence);
 
 	// Allocate device memory
 	char *d_sequence;
@@ -452,44 +447,31 @@ for (int i = 0; i < pat_number; i++){
 	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
 	cudaMalloc(&d_patterns, sizeof(char) * pat_number * max_pat_length);
 
-/*
-	for (int i = 0; i < pat_number; i++){
-		char *d_sub_pat;
-		cudaMalloc(&d_sub_pat, sizeof(char) * pat_length[i]);
-		cudaMemcpy(d_sub_pat, pattern[i], pat_length[i] * sizeof(char), cudaMemcpyHostToDevice);
-		cudaMemcpy(&d_patterns[i], &d_sub_pat, sizeof(char*), cudaMemcpyHostToDevice);
-	}
-*/
-
 	cudaMalloc(&d_pat_length, sizeof(unsigned long) * pat_number);
 	cudaMalloc(&d_pat_found, sizeof(unsigned long) * pat_number);
 	cudaMalloc(&d_seq_matches, sizeof(int) * seq_length);
 	cudaMalloc(&d_pat_matches, sizeof(int) * 1);
 
-char *flat_patterns= (char*)malloc(sizeof(char) * pat_number * max_pat_length);
-printf("\n");
-for (int i= 0; i < pat_number; i++) {
-	for (int j= 0; j < pat_length[i]; j++) {
-//printf("COPYING %c\n", pattern[i][j]);
-		flat_patterns[i*max_pat_length + j]= pattern[i][j];
+	char *flat_patterns= (char*)malloc(sizeof(char) * pat_number * max_pat_length);
+	for (int i= 0; i < pat_number; i++) {
+		for (int j= 0; j < pat_length[i]; j++){
+			flat_patterns[i*max_pat_length + j]= pattern[i][j];
+		}
 	}
-//printf("RESULTING %c\n\n", flat_patterns[i]);
-}
 
 	// Copy data to device
 	cudaMemcpy(d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_patterns, flat_patterns, sizeof(char) * pat_number * max_pat_length, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
-printf("\nENTERING KERNEL\n\n");
 	// Launch kernel for each process
-	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(max_pat_length, d_pat_matches, d_sequence, d_patterns + start_pat, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches, seq_length, end_pat - start_pat);
+	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(max_pat_length, d_pat_matches, d_sequence, d_patterns, d_pat_length, d_pat_found, d_seq_matches, seq_length, end_pat - start_pat);
 	CUDA_CHECK_KERNEL();
 
 	// Copy results back to host
-	cudaMemcpy(pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost);
-	cudaMemcpy(seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
-	cudaMemcpy(&pat_matches, d_pat_matches, sizeof(int) * 1, cudaMemcpyDeviceToHost);
+	cudaMemcpy(local_pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost);
+	cudaMemcpy(local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&local_pat_matches, d_pat_matches, sizeof(int) * 1, cudaMemcpyDeviceToHost);
 
 	// Free device memory
 	cudaFree(d_sequence);
@@ -500,14 +482,9 @@ printf("\nENTERING KERNEL\n\n");
 	cudaFree(d_pat_matches);
 
 	// Gather results from all processes
-	MPI_Reduce(pat_found, global_pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
-	MPI_Reduce(seq_matches, global_seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-	MPI_Reduce(&pat_matches, &global_pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
-	if (rank == 0) {
-		free(global_pat_found);
-		free(global_seq_matches);
-	}
+	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;

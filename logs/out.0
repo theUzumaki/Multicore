@@ -1,10 +1,10 @@
 Total device: 1
-Process: 0 of 1, running on 0 will spawn 1 blocks per grid and 1024 threads for block
+Process: 0 of 2, running on 0 will spawn 1 blocks per grid and 1024 threads for block
+Starting from 0 to 200
+Total device: 1
+Process: 1 of 2, running on 0 will spawn 1 blocks per grid and 1024 threads for block
+Starting from 200 to 400
 
-
-ENTERING KERNEL
-
-
-Time: 0.110103
-Result: 336, 38006, 43767
+Time: 0.172017
+Result: 338, 44556, 44726
 
