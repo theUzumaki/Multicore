@@ -62,10 +62,10 @@ __global__ void search_patterns(int pat_max_length, int* pat_matches, char *sequ
 	int start, lind;
 	for (start = 0; start <= seq_length - pat_length[pat]; start++) {
 		int counter= 0;
-//printf("\n------\n");
+printf("\n------\n");
 		for (lind = 0; lind < pat_length[pat]; lind++) {
 			if (sequence[start + lind] == patterns[pat * pat_max_length + lind]) counter++;
-//printf("sequence-> %c - %c <-pattern\n", sequence[start + lind], patterns[pat * pat_max_length + lind]);
+printf("sequence-> %c - %c <-patterns\n", sequence[start + lind], patterns[pat * pat_max_length + lind]);
 		}
 		if (counter == pat_length[pat]) {
 			atomicAdd(pat_matches, 1);
@@ -426,6 +426,7 @@ int main(int argc, char *argv[]) {
 	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
 printf("Total device: %d\n", device_num);
 printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\n", rank, proc_num, rank % device_num, blocksPerGrid, threadsPerBlock);
+printf("Process %d will work from %d to %d for a total of %d\n", rank, start_pat, end_pat, pat_per_proc);
 
 	// Global variables to gather results from all processes
 	unsigned long *global_pat_found = NULL;
@@ -438,10 +439,12 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 	}
 
 unsigned long max_pat_length= 0;
+unsigned long total_length= 0;
 for (int i = 0; i < pat_number; i++){
 	if (max_pat_length < pat_length[i]) max_pat_length= pat_length[i];
+	total_length+= pat_length[i];
 }
-//printf("SEQUENCE: %s\n", sequence);
+printf("MAX LENGTH: %lu\nTOTAL LENGTH: %lu\n", max_pat_length, total_length);
 
 	// Allocate device memory
 	char *d_sequence;
@@ -450,38 +453,21 @@ for (int i = 0; i < pat_number; i++){
 	unsigned long *d_pat_length, *d_pat_found;
 
 	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
-	cudaMalloc(&d_patterns, sizeof(char) * pat_number * max_pat_length);
-
-/*
-	for (int i = 0; i < pat_number; i++){
-		char *d_sub_pat;
-		cudaMalloc(&d_sub_pat, sizeof(char) * pat_length[i]);
-		cudaMemcpy(d_sub_pat, pattern[i], pat_length[i] * sizeof(char), cudaMemcpyHostToDevice);
-		cudaMemcpy(&d_patterns[i], &d_sub_pat, sizeof(char*), cudaMemcpyHostToDevice);
-	}
-*/
-
+	cudaMalloc(&d_patterns, sizeof(char) * total_length); // Flatten out 2D matrix
 	cudaMalloc(&d_pat_length, sizeof(unsigned long) * pat_number);
 	cudaMalloc(&d_pat_found, sizeof(unsigned long) * pat_number);
 	cudaMalloc(&d_seq_matches, sizeof(int) * seq_length);
 	cudaMalloc(&d_pat_matches, sizeof(int) * 1);
 
-char *flat_patterns= (char*)malloc(sizeof(char) * pat_number * max_pat_length);
-printf("\n");
-for (int i= 0; i < pat_number; i++) {
-	for (int j= 0; j < pat_length[i]; j++) {
-//printf("COPYING %c\n", pattern[i][j]);
-		flat_patterns[i*max_pat_length + j]= pattern[i][j];
-	}
-//printf("RESULTING %c\n\n", flat_patterns[i]);
-}
-
 	// Copy data to device
 	cudaMemcpy(d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_patterns, flat_patterns, sizeof(char) * pat_number * max_pat_length, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_patterns, pattern, sizeof(char) * pat_number, cudaMemcpyHostToDevice);
 	cudaMemcpy(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
-printf("\nENTERING KERNEL\n\n");
+for (int i= 0; i < pat_number; i++){
+printf("PATTERN-> %s - %s <-D_PATTERN\n", pattern[i], d_patterns[i]);
+}
+
 	// Launch kernel for each process
 	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(max_pat_length, d_pat_matches, d_sequence, d_patterns + start_pat, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches, seq_length, end_pat - start_pat);
 	CUDA_CHECK_KERNEL();
