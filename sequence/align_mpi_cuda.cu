@@ -58,6 +58,7 @@ double cp_Wtime(){
 __global__ void search_patterns(int pat_max_length, int* pat_matches, char *sequence, char *patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
 	int pat = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pat >= pat_number) return;
+printf("PAT: %d PAT_MAX_LENGTH: %d\n", pat, pat_max_length);
 
 	int start, lind;
 	int pattern_length= pat_length[pat];
@@ -68,11 +69,10 @@ __global__ void search_patterns(int pat_max_length, int* pat_matches, char *sequ
 		}
 		if (counter == pattern_length) {
 			atomicAdd(pat_matches, 1);
-			pat_found[pat] = start;
-			for (lind = 0; lind < pattern_length; lind++) {
-				if (seq_matches[start + lind] == NOT_FOUND) seq_matches[start + lind]= 0;
-				else atomicAdd(&seq_matches[start + lind], 1);
-			}
+		        pat_found[pat]= start;
+            		for (lind = 0; lind < pattern_length; lind++) {
+                		if (atomicCAS(&seq_matches[start + lind], NOT_FOUND, 0) != NOT_FOUND) atomicAdd(&seq_matches[start + lind], 1);
+		        }
 			break;
 		}
 	}
@@ -465,11 +465,11 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 	cudaMemcpy(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
 	// Launch kernel for each process
-	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(max_pat_length, d_pat_matches, d_sequence, d_patterns, d_pat_length, d_pat_found, d_seq_matches, seq_length, end_pat - start_pat);
+	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(max_pat_length, d_pat_matches, d_sequence + start_pat, d_patterns + start_pat, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches + start_pat, seq_length + start_pat, end_pat - start_pat);
 	CUDA_CHECK_KERNEL();
 
 	// Copy results back to host
-	cudaMemcpy(local_pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost);
+	cudaMemcpy(local_pat_found, d_pat_found, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost);
 	cudaMemcpy(local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
 	cudaMemcpy(&local_pat_matches, d_pat_matches, sizeof(int) * 1, cudaMemcpyDeviceToHost);
 
@@ -480,6 +480,9 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 	cudaFree(d_pat_found);
 	cudaFree(d_seq_matches);
 	cudaFree(d_pat_matches);
+printf("Process %d pat_matches: %d\n", rank, local_pat_matches);
+printf("Process %d pat_found: %lu %lu %lu %lu\n", rank, local_pat_found[0], local_pat_found[1], local_pat_found[2],  local_pat_found[3]);
+printf("Process %d seq_matches: %d %d %d %d %d %d %d %d %d %d\n", rank, local_seq_matches[0], local_seq_matches[1], local_seq_matches[2], local_seq_matches[3], local_seq_matches[4], local_seq_matches[5], local_seq_matches[6], local_seq_matches[7], local_seq_matches[8], local_seq_matches[9]),
 
 	// Gather results from all processes
 	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
