@@ -55,10 +55,9 @@ double cp_Wtime(){
  */
 
 
-__global__ void search_patterns(int pat_max_length, int* pat_matches, char *sequence, char *patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
+__global__ void search_patterns(int pat_max_length, int offset, int* pat_matches, char *sequence, char *patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
 	int pat = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pat >= pat_number) return;
-printf("PAT: %d PAT_MAX_LENGTH: %d\n", pat, pat_max_length);
 
 	int start, lind;
 	int pattern_length= pat_length[pat];
@@ -69,7 +68,7 @@ printf("PAT: %d PAT_MAX_LENGTH: %d\n", pat, pat_max_length);
 		}
 		if (counter == pattern_length) {
 			atomicAdd(pat_matches, 1);
-		        pat_found[pat]= start;
+		        *(pat_found + pat)= start;
             		for (lind = 0; lind < pattern_length; lind++) {
                 		if (atomicCAS(&seq_matches[start + lind], NOT_FOUND, 0) != NOT_FOUND) atomicAdd(&seq_matches[start + lind], 1);
 		        }
@@ -425,7 +424,7 @@ int main(int argc, char *argv[]) {
 	int threadsPerBlock = dp.maxThreadsPerBlock;
 	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
 printf("Total device: %d\n", device_num);
-printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\nStarting from %d to %d\n",
+printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\nStarting from %d to %d\n\n",
 	rank, proc_num, rank % device_num, blocksPerGrid, threadsPerBlock, start_pat, end_pat);
 
 	// Local variables to gather results from all processes
@@ -447,8 +446,11 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
 	cudaMalloc(&d_patterns, sizeof(char) * pat_number * max_pat_length);
 
+	unsigned long * not_found= (unsigned long *)malloc(sizeof(unsigned long) * pat_number);
+	for (int i= 0; i < pat_number; i++) not_found[i]= (unsigned long)NOT_FOUND;
 	cudaMalloc(&d_pat_length, sizeof(unsigned long) * pat_number);
 	cudaMalloc(&d_pat_found, sizeof(unsigned long) * pat_number);
+	cudaMemcpy(d_pat_found, not_found, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 	cudaMalloc(&d_seq_matches, sizeof(int) * seq_length);
 	cudaMalloc(&d_pat_matches, sizeof(int) * 1);
 
@@ -465,11 +467,11 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 	cudaMemcpy(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
 	// Launch kernel for each process
-	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(max_pat_length, d_pat_matches, d_sequence + start_pat, d_patterns + start_pat, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches + start_pat, seq_length + start_pat, end_pat - start_pat);
+	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(max_pat_length, start_pat, d_pat_matches, d_sequence, d_patterns + start_pat * max_pat_length, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches, seq_length, end_pat - start_pat);
 	CUDA_CHECK_KERNEL();
 
 	// Copy results back to host
-	cudaMemcpy(local_pat_found, d_pat_found, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost);
+	cudaMemcpy(local_pat_found, d_pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyDeviceToHost);
 	cudaMemcpy(local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
 	cudaMemcpy(&local_pat_matches, d_pat_matches, sizeof(int) * 1, cudaMemcpyDeviceToHost);
 
@@ -480,25 +482,48 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 	cudaFree(d_pat_found);
 	cudaFree(d_seq_matches);
 	cudaFree(d_pat_matches);
-printf("Process %d pat_matches: %d\n", rank, local_pat_matches);
-printf("Process %d pat_found: %lu %lu %lu %lu\n", rank, local_pat_found[0], local_pat_found[1], local_pat_found[2],  local_pat_found[3]);
-printf("Process %d seq_matches: %d %d %d %d %d %d %d %d %d %d\n", rank, local_seq_matches[0], local_seq_matches[1], local_seq_matches[2], local_seq_matches[3], local_seq_matches[4], local_seq_matches[5], local_seq_matches[6], local_seq_matches[7], local_seq_matches[8], local_seq_matches[9]),
+
+/*
+printf("Process %d pat_matches: %d\n\n", rank, local_pat_matches);
+
+printf("Process %d pat_found: ", rank);
+for (int i= 0; i < pat_number; i++) printf("%lu ", local_pat_found[i]);
+printf("\n\n");
+
+printf("Process %d seq_matches: ", rank);
+for (int i= 0; i < seq_length; i++) printf("%d ", local_seq_matches[i]);
+printf("\n\n");
+*/
 
 	// Gather results from all processes
-	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Gather(local_pat_found + start_pat, end_pat - start_pat, MPI_UNSIGNED_LONG, pat_found + start_pat, end_pat - start_pat, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+if (rank == 0) {
+/*
+printf("Process %d GLOBAL PAT FOUND: ", rank);
+for (int i= 0; i < pat_number; i++) printf("%lu ", pat_found[i]);
+printf("\n\n");
 
+printf("Process %d GLOBAL SEQ MATCHES: ", rank);
+for (int i= 0; i < seq_length; i++) printf("%d ", seq_matches[i]);
+printf("\n\n");
+
+printf("Process %d GLOBAL SEQ MATCHES WITHOUT NOT_FOUND: ", rank);
+for (int i= 0; i < seq_length; i++) if (seq_matches[i] != 0) printf("%d ", seq_matches[i]);
+printf("\n\n");
+*/
+}
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;
 	unsigned long checksum_found = 0;
 	for( ind=0; ind < pat_number; ind++) {
 		if ( pat_found[ind] != (unsigned long)NOT_FOUND )
-			checksum_found = ( checksum_found + pat_found[ind] ) % CHECKSUM_MAX;
+			checksum_found = ( checksum_found + pat_found[ind]) % CHECKSUM_MAX;
 	}
 	for( lind=0; lind < seq_length; lind++) {
-		if ( seq_matches[lind] != NOT_FOUND )
-			checksum_matches = ( checksum_matches + seq_matches[lind] ) % CHECKSUM_MAX;
+		if ( seq_matches[lind] != 0 )
+			checksum_matches = ( checksum_matches + seq_matches[lind] - 1) % CHECKSUM_MAX;
 	}
 
 #ifdef DEBUG

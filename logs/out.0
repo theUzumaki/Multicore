@@ -1,20 +1,12 @@
 Total device: 1
-Process: 0 of 2, running on 0 will spawn 1 blocks per grid and 1024 threads for block
-Starting from 0 to 2
-Total device: 1
-Process: 1 of 2, running on 0 will spawn 1 blocks per grid and 1024 threads for block
-Starting from 2 to 4
-PAT: 0 PAT_MAX_LENGTH: 10
-PAT: 1 PAT_MAX_LENGTH: 10
-Process 1 pat_matches: 2
-Process 1 pat_found: 0 0 3687663263500284725 61805421934647
-Process 1 seq_matches: 0 0 1 1 1 2 2 2 2 1
-PAT: 0 PAT_MAX_LENGTH: 10
-PAT: 1 PAT_MAX_LENGTH: 10
-Process 0 pat_matches: 2
-Process 0 pat_found: 3 0 3687663263500284725 60705910306871
-Process 0 seq_matches: 1 1 1 2 2 2 2 2 2 2
+Process: 1 of 2, running on 0 will spawn 5 blocks per grid and 1024 threads for block
+Starting from 5000 to 10000
 
-Time: 0.164975
-Result: 4, 30575, 29
+Total device: 1
+Process: 0 of 2, running on 0 will spawn 5 blocks per grid and 1024 threads for block
+Starting from 0 to 5000
+
+
+Time: 6.731039
+Result: 10000, 31870, 34193
 
