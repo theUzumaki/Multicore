@@ -55,16 +55,44 @@ double cp_Wtime(){
  */
 
 
-__global__ void search_patterns(int pat_max_length, int offset, int* pat_matches, char *sequence, char *patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
-	int pat = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pat >= pat_number) return;
+__global__ void search_patterns(int rank_offset, int pat_max_length, int seq_per_thread, int* pat_matches, char *sequence, char *patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
 
+	extern __shared__ char shared_mem[];
+	char *shared_sequence = shared_mem;
+	char *shared_patterns = shared_mem + seq_length * sizeof(char);
+
+        int pat = blockIdx.x * blockDim.x + threadIdx.x;
+        if (pat >= pat_number) return;
+printf("PAT NUM %d AND ID %d\n", pat, threadIdx.x);
+        // Load sequence and patterns into shared memory
+//printf("PAT %d HAS %d SEQ_PER_THREAD AND FILLS FROM %d TO %d\n", pat, seq_per_thread, seq_per_thread*pat + rank_offset, seq_per_thread*pat + seq_per_thread + rank_offset);
+//printf("SEQUENCE FILL FROM %d TO %d\n", seq_per_thread*pat, seq_per_thread*pat + seq_per_thread);
+//if (pat == 0) printf("STARTING FILLING SEQUENCE FROM: %d TO: %d\n", 0, (pat_number-1)*seq_per_thread + seq_per_thread);
+	for (int i = seq_per_thread*pat; i < seq_per_thread*pat + seq_per_thread; i++) shared_sequence[i] = sequence[i];
+//printf("PATTERNS FILL FROM %d TO %d\n", pat*pat_max_length, pat*pat_max_length+pat_max_length);
+        for (int i = 0; i < pat_max_length; i++) shared_patterns[pat * pat_max_length + i] = patterns[pat * pat_max_length + i];
+        __syncthreads();
+/*
+if (pat == 1) {
+
+int i;
+printf("\n\nGLOBAL SEQUENCE: ");
+	for (i= 0; i < seq_length; i++){
+		printf("%c", shared_sequence[i]);
+		printf(" ");
+	}
+printf("\nCOUNTER SEQ: %d\n", i);
+}
+*/
 	int start, lind;
 	int pattern_length= pat_length[pat];
+//	int pat_seq_count_TEMP= 0;
 	for (start = 0; start <= seq_length - pattern_length; start++) {
 		int counter= 0;
+//if (pat == 0) { printf("SHARED SEQUENCE -> %c ---- SEARCHED BY: %d IS NUM: %d\n", shared_sequence[start], start, ++pat_seq_count_TEMP); }
 		for (lind = 0; lind < pattern_length; lind++) {
-			if (sequence[start + lind] == patterns[pat * pat_max_length + lind]) counter++;
+			if (shared_sequence[start + lind] == shared_patterns[pat * pat_max_length + lind]) counter++;
+//if (pat == 2) printf("sequence -> %c - %c <- patterns\n", shared_sequence[start + lind], shared_patterns[pat * pat_max_length + lind]);
 		}
 		if (counter == pattern_length) {
 			atomicAdd(pat_matches, 1);
@@ -411,17 +439,33 @@ int main(int argc, char *argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
 
         // Divide work among processes
-	int pat_per_proc, start_pat, end_pat;
-        pat_per_proc = (pat_number + proc_num - 1) / proc_num;
-        start_pat = rank * pat_per_proc;
-        end_pat = std::min(start_pat + pat_per_proc, pat_number);
+	int pat_per_block, start_pat, end_pat;
+	int start_pat_block, end_pat_block;
+	unsigned long pat_per_proc= (pat_number + proc_num - 1)/proc_num;
+	int pat_per_proc_INT= pat_per_proc & INT_MAX;
+        unsigned long max_pat_length= 0;
+        for (int i = 0; i < pat_number; i++){
+                if (max_pat_length < pat_length[i]) max_pat_length= pat_length[i];
+        }
+	int holder_for_conv= ((dp.sharedMemPerBlock - seq_length) & INT_MAX);
+	int max_pat_length_int= max_pat_length & INT_MAX;
+printf("HOLDER: %d MAX_LENGTH: %d\n", holder_for_conv, max_pat_length_int);
+	pat_per_block= holder_for_conv / max_pat_length_int;
+	if (pat_per_block > (pat_number/proc_num)) pat_per_block= pat_number/proc_num;
+	else if (pat_per_block <= 0) pat_per_block = dp.sharedMemPerBlock;
+	start_pat_block= rank * pat_per_block;
+	end_pat_block= std::min(start_pat_block + pat_per_block, pat_number);
+	start_pat = rank * pat_per_proc_INT;
+        end_pat = std::min(start_pat + pat_per_proc_INT, pat_number);
 
 	// Blocks and threads
 	int device_num;
 	cudaGetDeviceCount(&device_num);
 	cudaSetDevice(rank % device_num);
 
-	int threadsPerBlock = dp.maxThreadsPerBlock;
+	int shared_mem_size = (seq_length + max_pat_length * (end_pat_block - start_pat_block)) * sizeof(char);
+printf("\nSHARED_MEM_SIZE: %d END PAT: %d START PAT: %d PAT PER BLOCK: %d\n\n", shared_mem_size, end_pat_block, start_pat_block, pat_per_block);
+	int threadsPerBlock = pat_per_block % dp.maxThreadsPerBlock;
 	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
 printf("Total device: %d\n", device_num);
 printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\nStarting from %d to %d\n\n",
@@ -431,11 +475,6 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 	unsigned long *local_pat_found = (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
 	int *local_seq_matches = (int *)malloc(sizeof(int) * seq_length);
 	int local_pat_matches;
-
-	unsigned long max_pat_length= 0;
-	for (int i = 0; i < pat_number; i++){
-		if (max_pat_length < pat_length[i]) max_pat_length= pat_length[i];
-	}
 
 	// Allocate device memory
 	char *d_sequence;
@@ -467,9 +506,19 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 	cudaMemcpy(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
 	// Launch kernel for each process
-	search_patterns<<<blocksPerGrid, threadsPerBlock>>>(max_pat_length, start_pat, d_pat_matches, d_sequence, d_patterns + start_pat * max_pat_length, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches, seq_length, end_pat - start_pat);
-	CUDA_CHECK_KERNEL();
-
+	search_patterns<<<blocksPerGrid, threadsPerBlock, shared_mem_size>>>(start_pat_block, max_pat_length, seq_length/(end_pat_block-start_pat_block) + 1, d_pat_matches, d_sequence, d_patterns + start_pat_block * max_pat_length, d_pat_length + start_pat_block, d_pat_found + start_pat_block, d_seq_matches, seq_length, end_pat_block - start_pat_block);
+        CUDA_CHECK_KERNEL();
+/*
+	for (int i= 0; i < pat_per_proc; i+= pat_per_block) {
+		search_patterns<<<blocksPerGrid, threadsPerBlock, shared_mem_size>>>(start_pat_block, max_pat_length, seq_length/(end_pat_block-start_pat_block) + 1, d_pat_matches, d_sequence, d_patterns + start_pat_block * max_pat_length, d_pat_length + start_pat_block, d_pat_found + start_pat_block, d_seq_matches, seq_length, end_pat_block - start_pat_block);
+		CUDA_CHECK_KERNEL();
+		unsigned long exceed_pat= (pat_number - pat_per_block * proc_num + proc_num - 1)/proc_num;
+		start_pat_block += exceed_pat % pat_per_block + 1;
+		end_pat_block += exceed_pat % pat_per_block + 1;
+		threadsPerBlock = shared_mem_size % dp.maxThreadsPerBlock;
+        	blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
+	}
+*/
 	// Copy results back to host
 	cudaMemcpy(local_pat_found, d_pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyDeviceToHost);
 	cudaMemcpy(local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
@@ -487,11 +536,11 @@ printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d th
 printf("Process %d pat_matches: %d\n\n", rank, local_pat_matches);
 
 printf("Process %d pat_found: ", rank);
-for (int i= 0; i < pat_number; i++) printf("%lu ", local_pat_found[i]);
+for (int i= 0; i < pat_number; i++) if (local_pat_found[i] != (unsigned long)NOT_FOUND) printf("%lu ", local_pat_found[i]);
 printf("\n\n");
 
 printf("Process %d seq_matches: ", rank);
-for (int i= 0; i < seq_length; i++) printf("%d ", local_seq_matches[i]);
+for (int i= 0; i < seq_length; i++) if (local_seq_matches[i] != 0) printf("%d ", local_seq_matches[i]);
 printf("\n\n");
 */
 
@@ -499,21 +548,19 @@ printf("\n\n");
 	MPI_Gather(local_pat_found + start_pat, end_pat - start_pat, MPI_UNSIGNED_LONG, pat_found + start_pat, end_pat - start_pat, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-if (rank == 0) {
 /*
-printf("Process %d GLOBAL PAT FOUND: ", rank);
-for (int i= 0; i < pat_number; i++) printf("%lu ", pat_found[i]);
-printf("\n\n");
+if (rank == 0) {
 
-printf("Process %d GLOBAL SEQ MATCHES: ", rank);
-for (int i= 0; i < seq_length; i++) printf("%d ", seq_matches[i]);
+printf("Process %d GLOBAL PAT FOUND: ", rank);
+for (int i= 0; i < pat_number; i++) if (pat_found[i] != (unsigned long)NOT_FOUND) printf("%lu ", pat_found[i]);
 printf("\n\n");
 
 printf("Process %d GLOBAL SEQ MATCHES WITHOUT NOT_FOUND: ", rank);
 for (int i= 0; i < seq_length; i++) if (seq_matches[i] != 0) printf("%d ", seq_matches[i]);
 printf("\n\n");
-*/
+
 }
+*/
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;
 	unsigned long checksum_found = 0;
