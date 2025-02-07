@@ -479,6 +479,8 @@ int main(int argc, char *argv[]) {
 	unsigned long *local_pat_found = (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
 	int *local_seq_matches = (int *)malloc(sizeof(int) * seq_length);
 	int local_pat_matches= 0;
+	int pinned_space= 
+	cudaMallocHost((void**)&sequence, sizeof(char) * seq_length);
 
 	// Allocate device memory
 	char *d_sequence;

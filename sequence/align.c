@@ -414,15 +414,6 @@ int main(int argc, char *argv[]) {
 	printf("-----------------\n");
 #endif // DEBUG
 
-printf("\nGLOBAL PAT FOUND: ");
-for (int i= 0; i < pat_number; i++) if (pat_found[i] != (unsigned long)NOT_FOUND) printf("%lu ", pat_found[i]);
-printf("\n\n");
-
-printf("GLOBAL SEQ MATCHES: ");
-for (int i= 0; i < seq_length; i++) if (seq_matches[i] != NOT_FOUND) printf("%d ", seq_matches[i]);
-printf("\n\n");
-
-
 	/* Free local resources */	
 	free( sequence );
 	free( seq_matches );
