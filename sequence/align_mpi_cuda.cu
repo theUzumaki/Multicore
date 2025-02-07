@@ -57,44 +57,34 @@ double cp_Wtime(){
 
 __global__ void search_patterns(int total_pat, int rank_patterns, int rank_offset, int pat_max_length, int* pat_matches, char *sequence, char *patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
 
-	extern __shared__ char shared_mem[];
-	char *shared_sequence = shared_mem;
+//	extern __shared__ char sh_pat[];
+//	char *shared_sequence = shared_mem;
 //	__shared__ int *shared_p_matches;
 //	char *shared_patterns = shared_mem + seq_length * sizeof(char);
 
-/*
-	int proc_num= rank_offset/rank_patterns;
-	int exceed= rank_patterns - (rank_offset + proc_num - 1)/proc_num*blockIdx.x;
-	if (exceed > rank_patterns/proc_num) exceed= pat_number;
-if (threadIdx.x==0) printf("EXCEED: %d\n", exceed);
-*/
-	int seq_per_thread= (seq_length + pat_number - 1)/ pat_number;
+//	int seq_per_thread= (seq_length + pat_number - 1)/ pat_number;
         int pat = blockIdx.x * blockDim.x + threadIdx.x;
-//if (threadIdx.x==0) printf("Seq_per_thread: %d Block id: %d\n", seq_per_thread, blockIdx.x);
 
-//printf(" ( %d ) ", pat);
         // Load sequence and patterns into shared memory
 //	if (threadIdx.x==0) shared_p_matches= pat_matches;
 
-	for (int i = seq_per_thread*threadIdx.x; i < seq_per_thread*threadIdx.x + seq_per_thread; i++) if (i < seq_length) shared_sequence[i] = sequence[i];
-	if (pat >= total_pat - rank_offset) return;
-	if (pat >= rank_patterns) return;
+//	for (int i = seq_per_thread*threadIdx.x; i < seq_per_thread*threadIdx.x + seq_per_thread; i++) if (i < seq_length) shared_sequence[i] = sequence[i];
+	if (pat >= total_pat - rank_offset || pat >= rank_patterns) return;
 
-        //for (int i = 0; i < pat_max_length; i++) shared_patterns[threadIdx.x * pat_max_length + i] = patterns[pat * pat_max_length + i];
-        __syncthreads();
-//if (threadIdx.x==0) printf("COUNT: %d\n", i);
+//	__syncthreads();
+
 	int start, lind;
 	int pattern_length= pat_length[pat];
 	for (start = 0; start <= seq_length - pattern_length; start++) {
 		int counter= 0;
 		for (lind = 0; lind < pattern_length; lind++) {
-			if (shared_sequence[start + lind] == patterns[pat * pat_max_length + lind]) counter++;
+			if (sequence[start + lind] == patterns[pat * pat_max_length + lind]) counter++;
 		}
 		if (counter == pattern_length) {
 			atomicAdd(pat_matches, 1);
 		        pat_found[pat]= start;
-            		for (lind = 0; lind < pattern_length; lind++) {
-                		//atomicCAS(&seq_matches[start + lind], NOT_FOUND, 0);
+       	    		for (lind = 0; lind < pattern_length; lind++) {
+			//atomicCAS(&seq_matches[start + lind], NOT_FOUND, 0);
 				atomicAdd(&seq_matches[start + lind], 1);
 		        }
 			break;
@@ -436,25 +426,18 @@ int main(int argc, char *argv[]) {
         MPI_Comm_size(MPI_COMM_WORLD, &proc_num);
 
         // Divide work among processes
-	int pat_per_block, start_pat, end_pat;
-	int start_pat_block, end_pat_block;
+	int pat_per_block, start_pat, end_pat, start_pat_block, end_pat_block;
 	unsigned long pat_per_proc= (pat_number + proc_num - 1)/proc_num;
 	int pat_per_proc_INT= pat_per_proc & INT_MAX;
+
         unsigned long max_pat_length= 0;
         for (int i = 0; i < pat_number; i++){
                 if (max_pat_length < pat_length[i]) max_pat_length= pat_length[i];
         }
-//	int holder_for_conv= ((dp.sharedMemPerBlock - seq_length) & INT_MAX);
-//	int max_pat_length_int= max_pat_length & INT_MAX;
-//printf("HOLDER: %d MAX_LENGTH: %d\n", holder_for_conv, max_pat_length_int);
-	// without max pat length cause im trying to exclude patterns from shared
-	// no more memory control in order to maximise proc number
+
 	int factor= 32 * 2;
 	int q= (pat_per_proc_INT + factor - 1) / factor;
 	pat_per_block= (pat_per_proc_INT + q - 1)/q;
-//if (rank==0) printf("PAT PER BLOCK: %d\n", pat_per_block);
-	//if (pat_per_block > (pat_number/proc_num)) pat_per_block= (pat_number + proc_num - 1)/proc_num;
-	//else if (pat_per_block <= 0) pat_per_block = dp.sharedMemPerBlock;
 	start_pat_block= rank * pat_per_block;
 	end_pat_block= std::min(start_pat_block + pat_per_block, pat_number);
 	start_pat = rank * pat_per_proc_INT;
@@ -465,11 +448,10 @@ int main(int argc, char *argv[]) {
 	cudaGetDeviceCount(&device_num);
 	cudaSetDevice(rank % device_num);
 
-	int shared_mem_size = (seq_length) * sizeof(char);
+	int shared_mem_size = pat_per_block * sizeof(int);
 //printf("\nSHARED_MEM_SIZE: %d END PAT: %d START PAT: %d PAT PER BLOCK: %d\n\n", shared_mem_size, end_pat_block, start_pat_block, pat_per_block);
-	int threadsPerBlock = pat_per_block;
-	int blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
-	dim3 blockSize(threadsPerBlock);
+	int blocksPerGrid = (end_pat - start_pat + pat_per_block - 1) / pat_per_block;
+	dim3 blockSize(pat_per_block);
 	dim3 gridSize(blocksPerGrid);
 //printf("Total device: %d\n", device_num);
 //printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\nStarting from %d to %d\n\n",
@@ -488,42 +470,37 @@ int main(int argc, char *argv[]) {
 
 	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
 	cudaMalloc(&d_patterns, sizeof(char) * pat_number * max_pat_length);
-
+/*
 	unsigned long * not_found= (unsigned long *)malloc(sizeof(unsigned long) * pat_number);
 	for (int i= 0; i < pat_number; i++) not_found[i]= (unsigned long)NOT_FOUND;
-
+*/
 	cudaMalloc(&d_pat_length, sizeof(unsigned long) * pat_number);
 	cudaMalloc(&d_pat_found, sizeof(unsigned long) * pat_number);
-	cudaMemcpy(d_pat_found, not_found, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
+// TO CANCEL IS NEEDED TO TEST WITH SMALLER INPUT
+//	cudaMemcpy(d_pat_found, not_found, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 	cudaMalloc(&d_seq_matches, sizeof(int) * seq_length);
 	cudaMalloc(&d_pat_matches, sizeof(int) * 1);
 
 	char *flat_patterns= (char*)malloc(sizeof(char) * pat_number * max_pat_length);
-	for (int i= 0; i < pat_number; i++) {
+	for (int i= pat_per_proc*rank; i < pat_number && i < pat_per_proc*(rank + 1); i++) {
 		for (int j= 0; j < pat_length[i]; j++){
 			flat_patterns[i*max_pat_length + j]= pattern[i][j];
 		}
 	}
 
+	cudaHostRegister(sequence, sizeof(char) * seq_length, cudaHostRegisterDefault);
+	cudaHostRegister(flat_patterns, sizeof(char) * pat_number * max_pat_length, cudaHostRegisterDefault);
+	cudaHostRegister(pat_length, sizeof(unsigned long) * pat_number, cudaHostRegisterDefault);
+
 	// Copy data to device
-	cudaMemcpy(d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_patterns, flat_patterns, sizeof(char) * pat_number * max_pat_length, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
+	cudaMemcpyAsync(d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice);
+	cudaMemcpyAsync(d_patterns, flat_patterns, sizeof(char) * pat_number * max_pat_length, cudaMemcpyHostToDevice);
+	cudaMemcpyAsync(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
 	// Launch kernel for each process
 	search_patterns<<<gridSize, blockSize, shared_mem_size>>>(pat_number, pat_per_proc, pat_per_proc*rank, max_pat_length, d_pat_matches, d_sequence, d_patterns + start_pat * max_pat_length, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches, seq_length, end_pat_block - start_pat_block);
         CUDA_CHECK_KERNEL();
-/*
-	for (int i= 0; i < pat_per_proc; i+= pat_per_block) {
-		search_patterns<<<blocksPerGrid, threadsPerBlock, shared_mem_size>>>(start_pat_block, max_pat_length, seq_length/(end_pat_block-start_pat_block) + 1, d_pat_matches, d_sequence, d_patterns + start_pat_block * max_pat_length, d_pat_length + start_pat_block, d_pat_found + start_pat_block, d_seq_matches, seq_length, end_pat_block - start_pat_block);
-		CUDA_CHECK_KERNEL();
-		unsigned long exceed_pat= (pat_number - pat_per_block * proc_num + proc_num - 1)/proc_num;
-		start_pat_block += exceed_pat % pat_per_block + 1;
-		end_pat_block += exceed_pat % pat_per_block + 1;
-		threadsPerBlock = shared_mem_size % dp.maxThreadsPerBlock;
-        	blocksPerGrid = (end_pat - start_pat + threadsPerBlock - 1) / threadsPerBlock;
-	}
-*/
+
 	// Copy results back to host
 	cudaMemcpy(local_pat_found, d_pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyDeviceToHost);
 	cudaMemcpy(local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
@@ -536,6 +513,10 @@ int main(int argc, char *argv[]) {
 	cudaFree(d_pat_found);
 	cudaFree(d_seq_matches);
 	cudaFree(d_pat_matches);
+
+	cudaHostUnregister(sequence);
+	cudaHostUnregister(flat_patterns);
+	cudaHostUnregister(pat_length);
 /*
 if (rank==1){
 
