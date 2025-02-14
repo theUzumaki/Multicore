@@ -55,10 +55,10 @@ double cp_Wtime(){
  */
 
 
-__global__ void search_patterns(int total_pat, int rank_patterns, int rank_offset, int* pat_matches, char *sequence, char **patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
+__global__ void search_patterns(int max_length, int total_pat, int rank_patterns, int rank_offset, int* pat_matches, char *sequence, char **patterns, unsigned long *pat_length, unsigned long *pat_found, int *seq_matches, unsigned long seq_length, int pat_number) {
 
-//	extern __shared__ char sh_pat[];
-//	char *shared_sequence = shared_mem;
+	extern __shared__ char shared_mem[];
+//	char *match_pattern = shared_mem;
 //	__shared__ int *shared_p_matches;
 //	char *shared_patterns = shared_mem + seq_length * sizeof(char);
 
@@ -75,11 +75,20 @@ __global__ void search_patterns(int total_pat, int rank_patterns, int rank_offse
 
 	int start, lind;
 	int pattern_length= pat_length[pat];
+	char *match_pattern;
+	match_pattern= (char*)malloc(sizeof(char)*pattern_length);
+
+	for (int i= 0; i < pattern_length; i++){
+if (pat == 0) printf("PAT: %c\n", patterns[pat][i]);
+		match_pattern[i]= patterns[pat][i];
+if (pat == 0) printf("RESULT: %c COUNTER: %d\n", match_pattern[i], i);
+	}
+if (pat == 0) printf("EXITED WITH %d: %s\n", pat, match_pattern);
 	for (start = 0; start <= seq_length - pattern_length; start++) {
+if (pat == 0) printf("(%c)", sequence[start]);
 		int counter= 0;
 		for (lind = 0; lind < pattern_length; lind++) {
-//printf("PATTERNS[%d][%d]: %c\n", pat, lind, patterns[pat][lind]);
-			if (sequence[start + lind] == patterns[pat][lind]) counter++;
+			if (sequence[start + lind] == match_pattern[lind]) counter++;
 		}
 		if (counter == pattern_length) {
 			atomicAdd(pat_matches, 1);
@@ -93,18 +102,15 @@ __global__ void search_patterns(int total_pat, int rank_patterns, int rank_offse
 	}
 }
 
-/*
- * Function: Increment the number of pattern matches on the sequence positions
- * 	This function can be changed and/or optimized by the students
- */
-void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_length, int *seq_matches ) {
-	unsigned long ind;
-	for( ind=0; ind<pat_length[pat]; ind++) {
-		if ( seq_matches[ pat_found[pat] + ind ] == NOT_FOUND )
-			seq_matches[ pat_found[pat] + ind ] = 0;
-		else
-			seq_matches[ pat_found[pat] + ind ] ++;
+__global__ void flatten(char **pattern2D, char *flat_pat, unsigned long *pat_length, int pat_per_proc){
+
+	int pat = blockIdx.x * blockDim.x + threadIdx.x;
+	if (pat >= pat_per_proc) return;
+
+	for (int i= 0; i < pat_length[pat]; i++){
+		flat_pat[pat + i]= pattern2D[pat][i];
 	}
+printf("PAT: %c\n", flat_pat[pat]);
 }
 
 /*
@@ -375,7 +381,9 @@ int main(int argc, char *argv[]) {
  *
  */
 	/* 2.1. Allocate and fill sequence */
-	char *sequence = (char *)malloc( sizeof(char) * seq_length );
+//	char *sequence = (char *)malloc( sizeof(char) * seq_length );
+	char *sequence;
+	cudaHostAlloc(&sequence, sizeof(char) * seq_length, cudaHostAllocDefault);
 	if ( sequence == NULL ) {
 		fprintf(stderr,"\n-- Error allocating the sequence for size: %lu\n", seq_length );
 		MPI_Abort( MPI_COMM_WORLD, EXIT_FAILURE );
@@ -431,16 +439,8 @@ int main(int argc, char *argv[]) {
 	int pat_per_proc_INT= pat_per_proc & INT_MAX;
 
 double start, end;
-/*
-        unsigned long max_pat_length= 0;
-        for (int i = 0; i < pat_number; i++){
-                if (max_pat_length < pat_length[i]) max_pat_length= pat_length[i];
-        }
-*/
 
-//printf("MAX LENGTH: %f\n", ((double) (end - start)) / CLOCKS_PER_SEC);
-
-	int factor= 32 * 2;
+	int factor= 8;
 	int q= (pat_per_proc_INT + factor - 1) / factor;
 	pat_per_block= (pat_per_proc_INT + q - 1)/q;
 	start_pat_block= rank * pat_per_block;
@@ -453,107 +453,121 @@ double start, end;
 	cudaGetDeviceCount(&device_num);
 	cudaSetDevice(rank % device_num);
 
-	int shared_mem_size = pat_per_block * sizeof(int);
+	int shared_mem_size = seq_length * sizeof(char);
 //printf("\nSHARED_MEM_SIZE: %d END PAT: %d START PAT: %d PAT PER BLOCK: %d\n\n", shared_mem_size, end_pat_block, start_pat_block, pat_per_block);
 	int blocksPerGrid = (end_pat - start_pat + pat_per_block - 1) / pat_per_block;
 	dim3 blockSize(pat_per_block);
 	dim3 gridSize(blocksPerGrid);
 //printf("Total device: %d\n", device_num);
-//printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\nStarting from %d to %d\n\n",
-//	rank, proc_num, rank % device_num, blocksPerGrid, threadsPerBlock, start_pat, end_pat);
+printf("Process: %d of %d, running on %d will spawn %d blocks per grid and %d threads for block\nStarting from %d to %d\n\n",
+	rank, proc_num, rank % device_num, blocksPerGrid, pat_per_block, start_pat, end_pat);
 
 	// Local variables to gather results from all processes
-	unsigned long *local_pat_found = (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
-	int *local_seq_matches = (int *)malloc(sizeof(int) * seq_length);
-	int local_pat_matches= 0;
+//	unsigned long *local_pat_found = (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
+//	int *local_seq_matches = (int *)malloc(sizeof(int) * seq_length);
+	unsigned long *local_pat_found;
+	cudaHostAlloc(&local_pat_found, sizeof(unsigned long) * pat_number, cudaHostAllocDefault);
+	int *local_seq_matches;
+	cudaHostAlloc(&local_seq_matches, sizeof(int) * seq_length, cudaHostAllocDefault);
+	int *local_pat_matches;
+	cudaHostAlloc(&local_pat_matches, sizeof(int), cudaHostAllocDefault);
 
 	// Allocate device memory
-start= clock();
-	char *d_sequence, **d_patterns;
-	int *d_seq_matches, *d_pat_matches;
-	unsigned long *d_pat_length, *d_pat_found;
+//start= clock();
+//	char *d_sequence;
+	char **d_patterns;
+//	char *d_flat_pat;
+//	int *d_seq_matches;
+//	int *d_pat_matches;
+//	unsigned long *d_pat_length;
+//	unsigned long *d_pat_found;
 
-	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
+//	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
 	cudaMalloc(&d_patterns, sizeof(char*) * pat_number);
-	cudaMalloc(&d_pat_length, sizeof(unsigned long) * pat_number);
+//	cudaMalloc(&d_pat_length, sizeof(unsigned long) * pat_number);
 
-        cudaHostRegister(sequence, sizeof(char) * seq_length, cudaHostRegisterDefault);
+//	cudaHostRegister(sequence, sizeof(char) * seq_length, cudaHostRegisterDefault);
 	cudaHostRegister(pattern, sizeof(char*) * pat_number, cudaHostRegisterDefault);
         cudaHostRegister(pat_length, sizeof(unsigned long) * pat_number, cudaHostRegisterDefault);
 
-        cudaMemcpyAsync(d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice);
+//	cudaMemcpyAsync(d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice);
 //	cudaMemcpyAsync(d_patterns, pattern, sizeof(char*) * pat_number, cudaMemcpyHostToDevice);
-        cudaMemcpyAsync(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
+//	cudaMemcpyAsync(d_pat_length, pat_length, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice);
 
-	cudaMalloc(&d_pat_found, sizeof(unsigned long) * pat_number);
-	cudaMalloc(&d_seq_matches, sizeof(int) * seq_length);
-	cudaMalloc(&d_pat_matches, sizeof(int) * 1);
-end= clock();
-printf("RANK %d MALLOC ONE: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
+//	cudaMalloc(&d_pat_found, sizeof(unsigned long) * pat_number);
+//	cudaMalloc(&d_seq_matches, sizeof(int) * seq_length);
+//	cudaMalloc(&d_pat_matches, sizeof(int) * 1);
+//end= clock();
+//printf("RANK %d MALLOC ONE: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
 
 start= clock();
 	int upper_limit= std::min(pat_number, (int)(pat_per_proc*(rank+1) & INT_MAX));
+	int max_length= 0;
 	for (int i= pat_per_proc*rank; i < upper_limit; i++) {
 		char *d_row;
 		int size= sizeof(char)*pat_length[i];
+		if (max_length < size) max_length= size;
 		cudaMalloc(&d_row, size);
-		cudaMemcpyAsync(d_row, pattern[i], size, cudaMemcpyHostToDevice);
-		cudaMemcpy(&d_patterns[i], &d_row, sizeof(char*), cudaMemcpyHostToDevice);
+		cudaMemcpy(d_row, pattern[i], size, cudaMemcpyHostToDevice);
+		pattern[i] = d_row;
 	}
 	MPI_Barrier( MPI_COMM_WORLD );
+//	cudaMalloc(&d_flat_pat, sizeof(char) * total_length);
+
 end = clock();
 printf("RANK %d MALLOC 2D: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
 	// Launch kernel for each process
 start= clock();
-	search_patterns<<<gridSize, blockSize, shared_mem_size>>>(pat_number, pat_per_proc, pat_per_proc*rank, d_pat_matches, d_sequence, d_patterns + start_pat, d_pat_length + start_pat, d_pat_found + start_pat, d_seq_matches, seq_length, end_pat_block - start_pat_block);
-end= clock();
-printf("RANK %d KERNEL: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
+//	flatten<<<gridSize, blockSize>>>(pattern, d_flat_pat, pat_length, pat_per_proc);
+	search_patterns<<<gridSize, blockSize, shared_mem_size>>>(max_length, pat_number, pat_per_proc, pat_per_proc*rank, local_pat_matches, sequence, pattern + start_pat, pat_length + start_pat, local_pat_found + start_pat, local_seq_matches, seq_length, end_pat_block - start_pat_block);
+//end= clock();
+//printf("RANK %d KERNEL: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
         CUDA_CHECK_KERNEL();
 
 	// Copy results back to host
-start= clock();
-	cudaMemcpy(local_pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost);
-	cudaMemcpy(local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
-	cudaMemcpy(&local_pat_matches, d_pat_matches, sizeof(int) * 1, cudaMemcpyDeviceToHost);
+//start= clock();
+//	cudaMemcpy(local_pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost);
+//	cudaMemcpy(local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost);
+//	cudaMemcpy(&local_pat_matches, d_pat_matches, sizeof(int) * 1, cudaMemcpyDeviceToHost);
+cudaDeviceSynchronize();
 end= clock();
-printf("RANK %d MALLOC TWO: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
+printf("RANK %d KERNEL: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
 
+start= clock();
 	// Free device memory
-	cudaFree(d_sequence);
+//	cudaFree(d_sequence);
 	cudaFree(d_patterns);
-	cudaFree(d_pat_length);
-	cudaFree(d_pat_found);
-	cudaFree(d_seq_matches);
-	cudaFree(d_pat_matches);
+//	cudaFree(d_pat_length);
+//	cudaFree(d_pat_found);
+//	cudaFree(d_seq_matches);
+//	cudaFree(d_pat_matches);
 
-	cudaHostUnregister(sequence);
-	cudaHostUnregister(pattern);
-	cudaHostUnregister(pat_length);
+/*
+        cudaHostUnregister(sequence);
+        cudaHostUnregister(local_pat_found);
+        cudaHostUnregister(local_seq_matches);
+        cudaHostUnregister(pat_length);
+*/
+end= clock();
+printf("RANK %d UNREGISTER: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
+
 
 	// Gather results from all processes
 start= clock();
 	MPI_Gather(local_pat_found + start_pat, end_pat - start_pat, MPI_UNSIGNED_LONG, pat_found + start_pat, end_pat - start_pat, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+end= clock();
+printf("RANK %d GATHER: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
+start= clock();
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(local_pat_matches, &pat_matches, sizeof(int), MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 end= clock();
 printf("RANK %d REDUCE: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
 
-/*
-if (rank == 0) {
-
-printf("Process %d GLOBAL PAT FOUND: ", rank);
-for (int i= 0; i < pat_number; i++) if (pat_found[i] != (unsigned long)NOT_FOUND) printf("%lu ", pat_found[i]);
-printf("\n\n");
-
-printf("Process %d GLOBAL SEQ MATCHES WITHOUT NOT_FOUND: ", rank);
-for (int i= 0; i < seq_length; i++) if (seq_matches[i] != 0) printf("%d ", seq_matches[i]);
-printf("\n\n");
-
-}
-*/
 	/* 7. Check sums */
+start= clock();
 	unsigned long checksum_matches = 0;
 	unsigned long checksum_found = 0;
+
 	for( ind=0; ind < pat_number; ind++) {
 		if ( pat_found[ind] != (unsigned long)NOT_FOUND )
 			checksum_found = ( checksum_found + pat_found[ind]) % CHECKSUM_MAX;
@@ -579,9 +593,15 @@ printf("\n\n");
 	printf("-----------------\n");
 #endif // DEBUG
 
-	/* Free local resources */	
-	free( sequence );
+	/* Free local resources */
+/*
+	cudaFreeHost( sequence );
+        cudaFreeHost( local_pat_found );
+        cudaFreeHost( local_seq_matches );
 	free( seq_matches );
+*/
+end= clock();
+printf("RANK %d CHECKSUM AND FREE: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
 
 /*
  *
