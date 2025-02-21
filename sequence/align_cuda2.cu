@@ -54,6 +54,25 @@ double cp_Wtime(){
  *
  */
 /* ADD KERNELS AND OTHER FUNCTIONS HERE */
+__global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned long *d_pat_length, int *d_pat_matches, unsigned long *d_pat_found, int *d_seq_matches, int pat_number, unsigned long seq_length) {
+        int pat = blockIdx.x * blockDim.x + threadIdx.x;
+        if (pat >= pat_number) return;
+
+        unsigned long start, lind;
+        for (start = 0; start <= seq_length - d_pat_length[pat]; start++) {
+                for (lind = 0; lind < d_pat_length[pat]; lind++) {
+                        if (d_sequence[start + lind] != d_pattern[pat][lind]) break;
+                }
+                if (lind == d_pat_length[pat]) {
+                        atomicAdd(d_pat_matches, 1);
+                        d_pat_found[pat] = start;
+	                for (lind = 0; lind < d_pat_length[pat]; lind++) {
+                                atomicAdd(&d_seq_matches[start + lind], 1);
+                        }
+                        break;
+                }
+	}
+} 
 
 
 /*
@@ -421,43 +440,10 @@ int main(int argc, char *argv[]) {
 	int *d_pat_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) ) );
 
-	char **d_pattern;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pattern, sizeof(char *) * pat_number ) );
-	char **d_pattern_in_host = (char **)malloc(sizeof(char *) * pat_number);
-	for (ind = 0; ind < pat_number; ind++) {
-		char *d_pat;
-		CUDA_CHECK_FUNCTION(cudaMalloc(&d_pat, sizeof(char) * pat_length[ind]));
-		CUDA_CHECK_FUNCTION(cudaMemcpy(d_pat, pattern[ind], sizeof(char) * pat_length[ind], cudaMemcpyHostToDevice));
-		d_pattern_in_host[ind] = d_pat;
-	}
-	CUDA_CHECK_FUNCTION(cudaMemcpy(d_pattern, d_pattern_in_host, sizeof(char *) * pat_number, cudaMemcpyHostToDevice));
-
-
-	/* 7. Define CUDA kernel */
-	__global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned long *d_pat_length, unsigned long *d_pat_found, int *d_seq_matches, int pat_number, unsigned long seq_length) {
-		int pat = blockIdx.x * blockDim.x + threadIdx.x;
-		if (pat >= pat_number) return;
-
-		unsigned long start, lind;
-		for (start = 0; start <= seq_length - d_pat_length[pat]; start++) {
-			for (lind = 0; lind < d_pat_length[pat]; lind++) {
-				if (d_sequence[start + lind] != d_pattern[pat][lind]) break;
-			}
-			if (lind == d_pat_length[pat]) {
-				atomicAdd(&d_pat_matches, 1);
-				d_pat_found[pat] = start;
-				for (lind = 0; lind < d_pat_length[pat]; lind++) {
-					atomicAdd(&d_seq_matches[start + lind], 1);
-				}
-				break;
-			}
-		}
-	}
-
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
-	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern, d_pat_length, d_pat_found, d_seq_matches, end_pat - start_pat, seq_length);
+	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, end_pat - start_pat, seq_length);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
