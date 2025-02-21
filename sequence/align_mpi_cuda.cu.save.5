@@ -101,20 +101,10 @@ __global__ void flatten(char **pattern2D, char *flat_pat, unsigned long *pat_len
 
 	int pat = blockIdx.x * blockDim.x + threadIdx.x;
 	if (pat >= pat_per_proc) return;
-if (pat == 0) printf("INSIDE\n");
+
 	for (int i= 0; i < pat_length[pat]; i++){
-if (pat == 0) printf("OLD: %c NEW: %c\n", flat_pat[pat*offset + i], pattern2D[pat][i]);
 		flat_pat[pat*offset + i]= pattern2D[pat][i];
 	}
-}
-
-__global__ void test(char **pattern2D, char *flat_pat, unsigned long *pat_length, int pat_per_proc, int test){
-        int pat = blockIdx.x * blockDim.x + threadIdx.x;
-//if (pat == 0) printf("TEST STARTED\n");
-/*if (pat == 0) printf("LENGTH: %d\n", test);
-if (pat == 0) printf("patperproc: %d\n", pat_per_proc);
-        if (pat >= pat_per_proc) return;
-*/if (pat == 0) printf("TEST SUCCEDED\n");
 }
 
 /*
@@ -489,7 +479,8 @@ start= clock();
 	unsigned long *d_pat_found;
 
 	cudaMalloc(&d_sequence, sizeof(char) * seq_length);
-//	cudaMalloc(&d_patterns, sizeof(char*) * pat_per_proc);
+	cudaMalloc(&d_patterns, sizeof(char*) * pat_per_proc);
+	d_patterns= (char**) malloc(sizeof(char*) * pat_per_proc);
 //	cudaMalloc(&d_pat_length, sizeof(unsigned long) * pat_number);
 
 	cudaHostRegister(sequence, sizeof(char) * seq_length, cudaHostRegisterDefault);
@@ -510,56 +501,31 @@ start= clock();
 	int upper_limit= std::min(pat_number, (int)(pat_per_proc*(rank+1) & INT_MAX));
 	int max_length= 0;
 	int total_length= 0;
-
-	for (int i= pat_per_proc_INT*rank; i < upper_limit; i++) {
+	for (int i= pat_per_proc*rank; i < upper_limit; i++) {
 		int size= sizeof(char)*pat_length[i];
 		if (max_length < size) max_length= size;
 		total_length+= size;
+printf("INSIDE FOR\n");
+		cudaMalloc(&d_patterns[i], size);
 	}
 
-	size_t pitch;
-
-	if (max_length % 256 != 0) {
-		int temp= (max_length + 255) / 256;
-		max_length = 256*temp;
-	}
-
-printf("ALIGNED MAX_LENGTH %d\n", max_length);
-
-	cudaMallocPitch(&d_patterns, &pitch, max_length, pat_number);
-cudaDeviceSynchronize();
-cudaError_t check= cudaGetLastError();
-printf("RANK %d ERROR MALLOCPITCH: %s\n", rank, cudaGetErrorString(check));
-printf("PITCH VALUE %lu\n", pitch);
-	cudaMemcpy2D(d_patterns, pitch, pattern, max_length, max_length, pat_number, cudaMemcpyHostToDevice);
-cudaDeviceSynchronize();
-check= cudaGetLastError();
-printf("RANK %d ERROR MEMCPY2D: %s\n", rank, cudaGetErrorString(check));
-
+printf("Check for integrity\n");
+	cudaMemcpy(d_patterns, pattern, total_length, cudaMemcpyHostToDevice);
+printf("Check after memcpy\n");
 	MPI_Barrier( MPI_COMM_WORLD );
 	cudaMalloc(&d_flat_pat, max_length * (upper_limit-pat_per_proc*rank));
-
+printf("Check after malloc\n");
 end = clock();
 printf("RANK %d MALLOC 2D: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
 	// Launch kernel for each process
-//printf("TEST FOR PRINT: %d\n", max_length);
 start= clock();
-        test<<<gridSize, blockSize>>>(d_patterns, d_flat_pat, pat_length + start_pat, upper_limit - pat_per_proc_INT*rank, max_length);
+	flatten<<<gridSize, blockSize>>>(d_patterns, d_flat_pat, pat_length + start_pat, upper_limit - (pat_per_proc*rank), max_length);
 cudaDeviceSynchronize();
-check= cudaGetLastError();
-printf("RANK %d ERROR KERNEL 0: %s\n", rank, cudaGetErrorString(check));
-start= clock();
-//	flatten<<<gridSize, blockSize>>>(d_patterns, d_flat_pat, pat_length + start_pat, upper_limit - (pat_per_proc_INT*rank), max_length);
-cudaDeviceSynchronize();
-check= cudaGetLastError();
-printf("RANK %d ERROR KERNEL 1: %s\n", rank, cudaGetErrorString(check));
 end = clock();
 printf("RANK %d KERNEL 1: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
 start= clock();
 	search_patterns<<<gridSize, blockSize, shared_mem_size>>>(max_length, pat_number, pat_per_proc, pat_per_proc*rank, local_pat_matches, d_sequence, d_flat_pat, pat_length + start_pat, d_pat_found, d_seq_matches, seq_length, end_pat_block - start_pat_block);
 cudaDeviceSynchronize();
-check= cudaGetLastError();
-printf("RANK %d ERROR KERNEL 2: %s\n", rank, cudaGetErrorString(check));
 end= clock();
 printf("RANK %d KERNEL 2: %f\n", rank, ((double) (end - start)) / CLOCKS_PER_SEC);
 //        CUDA_CHECK_KERNEL();

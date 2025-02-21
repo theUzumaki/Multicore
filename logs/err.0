@@ -6,44 +6,32 @@ are not used by default.  The intent is to use UCX for these devices.
 You can override this policy by setting the btl_openib_allow_ib MCA parameter
 to true.
 
-  Local host:              node112
-  Local adapter:           ibp129s0
+  Local host:              node126
+  Local adapter:           mlx5_1
   Local port:              1
 
 --------------------------------------------------------------------------
 --------------------------------------------------------------------------
 WARNING: There was an error initializing an OpenFabrics device.
 
-  Local host:   node112
-  Local device: ibp129s0
+  Local host:   node126
+  Local device: mlx5_1
 --------------------------------------------------------------------------
-[node112:2313533] *** Process received signal ***
-[node112:2313533] Signal: Segmentation fault (11)
-[node112:2313533] Signal code: Invalid permissions (2)
-[node112:2313533] Failing at address: 0x149785c139f8
-[node112:2313533] [ 0] /lib/x86_64-linux-gnu/libpthread.so.0(+0x14420)[0x1497c16e2420]
-[node112:2313533] [ 1] /lib/x86_64-linux-gnu/libc.so.6(cfree+0x20)[0x1497c12226f0]
-[node112:2313533] [ 2] align_m_c(+0x9a3f)[0x556d1bf9fa3f]
-[node112:2313533] [ 3] /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf3)[0x1497c11ac083]
-[node112:2313533] [ 4] align_m_c(+0x7afe)[0x556d1bf9dafe]
-[node112:2313533] *** End of error message ***
-[node112:2313534] *** Process received signal ***
-[node112:2313534] Signal: Segmentation fault (11)
-[node112:2313534] Signal code: Invalid permissions (2)
-[node112:2313534] Failing at address: 0x146c35c139f8
-[node112:2313534] [ 0] /lib/x86_64-linux-gnu/libpthread.so.0(+0x14420)[0x146c725ad420]
-[node112:2313534] [ 1] /lib/x86_64-linux-gnu/libc.so.6(cfree+0x20)[0x146c720ed6f0]
-[node112:2313534] [ 2] align_m_c(+0x9a3f)[0x5611f5470a3f]
-[node112:2313534] [ 3] /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf3)[0x146c72077083]
-[node112:2313534] [ 4] align_m_c(+0x7afe)[0x5611f546eafe]
-[node112:2313534] *** End of error message ***
+free(): invalid pointer
+[node126:371580] *** Process received signal ***
+[node126:371580] Signal: Aborted (6)
+[node126:371580] Signal code:  (-6)
+[node126:371580] *** Process received signal ***
+[node126:371580] Signal: Segmentation fault (11)
+[node126:371580] Signal code: Address not mapped (1)
+[node126:371580] Failing at address: 0x31c
 --------------------------------------------------------------------------
 Primary job  terminated normally, but 1 process returned
 a non-zero exit code. Per user-direction, the job has been aborted.
 --------------------------------------------------------------------------
-[node112:2313500] 1 more process has sent help message help-mpi-btl-openib.txt / ib port not selected
-[node112:2313500] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
-[node112:2313500] 1 more process has sent help message help-mpi-btl-openib.txt / error in device init
 --------------------------------------------------------------------------
-mpirun noticed that process rank 0 with PID 2313533 on node 0 exited on signal 11 (Segmentation fault).
+mpirun noticed that process rank 0 with PID 371580 on node 0 exited on signal 11 (Segmentation fault).
 --------------------------------------------------------------------------
+[node126:371547] 1 more process has sent help message help-mpi-btl-openib.txt / ib port not selected
+[node126:371547] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
+[node126:371547] 1 more process has sent help message help-mpi-btl-openib.txt / error in device init
