@@ -59,20 +59,25 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
         if (pat >= pat_number) return;
 
         unsigned long start, lind;
+//printf("PAT NUM: %d WITH LENGTH: %lu AND STARTER: %c\n", pat, d_pat_length[pat], d_pattern[pat][0]);
+//if (pat == 0) printf("LENGTH PAT: %lu LENGTH SEQ: %lu LIMIT: %lu SEQUENCE: \n", d_pat_length[pat], seq_length, seq_length - d_pat_length[pat]);
         for (start = 0; start <= seq_length - d_pat_length[pat]; start++) {
+//if (pat == 0) printf("%lu -> ", start);
+//if (pat == 0) printf("(%c)\n", d_sequence[start]);
                 for (lind = 0; lind < d_pat_length[pat]; lind++) {
                         if (d_sequence[start + lind] != d_pattern[pat][lind]) break;
                 }
                 if (lind == d_pat_length[pat]) {
                         atomicAdd(d_pat_matches, 1);
-                        d_pat_found[pat] = start;
+                        d_pat_found[pat] = start + 1;
 	                for (lind = 0; lind < d_pat_length[pat]; lind++) {
                                 atomicAdd(&d_seq_matches[start + lind], 1);
                         }
+//if (pat == 0) printf("-----> BREAK <-----");
                         break;
                 }
 	}
-} 
+}
 
 
 /*
@@ -410,10 +415,10 @@ int main(int argc, char *argv[]) {
 
 	/* 4. Initialize ancillary structures */
 	for( ind=0; ind<pat_number; ind++) {
-		pat_found[ind] = (unsigned long)NOT_FOUND;
+		pat_found[ind] = 0;
 	}
 	for( lind=0; lind<seq_length; lind++) {
-		seq_matches[lind] = NOT_FOUND;
+		seq_matches[lind] = 0;
 	}
 
 	/* 5. Subdivide work among MPI processes */
@@ -423,6 +428,12 @@ int main(int argc, char *argv[]) {
 	int start_pat = rank * chunk_size;
 	int end_pat = (rank + 1) * chunk_size;
 	if (end_pat > pat_number) end_pat = pat_number;
+	int pat_per_proc = end_pat - start_pat;
+
+	/* 6. Allocate local arrays */
+	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_per_proc);
+	int *local_seq_matches= (int*)malloc(sizeof(int) * seq_length);
+	int local_pat_matches= 0;
 
 	/* 6. Allocate device memory for sequence and patterns */
 	char *d_sequence;
@@ -430,31 +441,44 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
 
 	unsigned long *d_pat_found;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_number ) );
-	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pat_found, pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice ) );
+	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );
+	CUDA_CHECK_FUNCTION (cudaMemcpy( d_pat_found, pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
 
 	int *d_seq_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches, sizeof(int) * seq_length ) );
-	CUDA_CHECK_FUNCTION( cudaMemcpy( d_seq_matches, seq_matches, sizeof(int) * seq_length, cudaMemcpyHostToDevice ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( d_seq_matches, local_seq_matches, sizeof(int) * seq_length, cudaMemcpyHostToDevice ) );
 
 	int *d_pat_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) ) );
 
+	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pat_length + start_pat, pat_length + start_pat, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
+
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
-	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, end_pat - start_pat, seq_length);
+	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern + start_pat, d_pat_length + start_pat, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
-	CUDA_CHECK_FUNCTION( cudaMemcpy( pat_found + start_pat, d_pat_found + start_pat, sizeof(unsigned long) * (end_pat - start_pat), cudaMemcpyDeviceToHost ) );
-	CUDA_CHECK_FUNCTION( cudaMemcpy( seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
-	CUDA_CHECK_FUNCTION( cudaMemcpy( &pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
+for (int i= 0; i < pat_per_proc; i++){
+printf("RANK %d PAT %d FOUND AT -> (%d)\n", rank, i + start_pat, (int)(local_pat_found[i] & INT_MAX) - 1);
+}
+
+printf("START PAT %d MOVES %p TO %p\n", start_pat, pat_found, pat_found + start_pat);
 	/* 10. Gather results from all MPI processes */
-	MPI_Allreduce(MPI_IN_PLACE, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MIN, MPI_COMM_WORLD);
-	MPI_Allreduce(MPI_IN_PLACE, seq_matches, seq_length, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-	MPI_Allreduce(MPI_IN_PLACE, &pat_matches, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+	MPI_Reduce(local_pat_found, pat_found + start_pat, pat_per_proc, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+if (rank == 0){
+for (int i= 0; i < pat_number; i++){
+printf("GLOBAL PAT %d FOUND AT -> (%d)\n", i, (int)(pat_found[i] & INT_MAX) - 1);
+}
+}
 
 	/* 11. Free device memory */
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
@@ -466,12 +490,12 @@ int main(int argc, char *argv[]) {
 	unsigned long checksum_matches = 0;
 	unsigned long checksum_found = 0;
 	for( ind=0; ind < pat_number; ind++) {
-		if ( pat_found[ind] != (unsigned long)NOT_FOUND )
-			checksum_found = ( checksum_found + pat_found[ind] ) % CHECKSUM_MAX;
+		if ( pat_found[ind] != 0 )
+			checksum_found = ( checksum_found + pat_found[ind] - 1) % CHECKSUM_MAX;
 	}
 	for( lind=0; lind < seq_length; lind++) {
-		if ( seq_matches[lind] != NOT_FOUND )
-			checksum_matches = ( checksum_matches + seq_matches[lind] ) % CHECKSUM_MAX;
+		if ( seq_matches[lind] != 0 )
+			checksum_matches = ( checksum_matches + seq_matches[lind] - 1) % CHECKSUM_MAX;
 	}
 
 #ifdef DEBUG
