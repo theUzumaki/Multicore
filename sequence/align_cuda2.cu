@@ -431,7 +431,7 @@ int main(int argc, char *argv[]) {
 	int pat_per_proc = end_pat - start_pat;
 
 	/* 6. Allocate local arrays */
-	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_per_proc);
+	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
 	int *local_seq_matches= (int*)malloc(sizeof(int) * seq_length);
 	int local_pat_matches= 0;
 
@@ -441,8 +441,8 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
 
 	unsigned long *d_pat_found;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );
-	CUDA_CHECK_FUNCTION (cudaMemcpy( d_pat_found, pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
+	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_number ) );
+	CUDA_CHECK_FUNCTION (cudaMemcpy( d_pat_found, pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice ) );
 
 	int *d_seq_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches, sizeof(int) * seq_length ) );
@@ -456,30 +456,30 @@ int main(int argc, char *argv[]) {
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
-	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern + start_pat, d_pat_length + start_pat, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
+	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern + start_pat, d_pat_length + start_pat, d_pat_matches, d_pat_found + start_pat, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
-	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
-
+/*
 for (int i= 0; i < pat_per_proc; i++){
 printf("RANK %d PAT %d FOUND AT -> (%d)\n", rank, i + start_pat, (int)(local_pat_found[i] & INT_MAX) - 1);
 }
-
-printf("START PAT %d MOVES %p TO %p\n", start_pat, pat_found, pat_found + start_pat);
+*/
+//printf("START PAT %d MOVES %p TO %p\n", start_pat, pat_found, pat_found + start_pat);
 	/* 10. Gather results from all MPI processes */
-	MPI_Reduce(local_pat_found, pat_found + start_pat, pat_per_proc, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
+/*
 if (rank == 0){
 for (int i= 0; i < pat_number; i++){
 printf("GLOBAL PAT %d FOUND AT -> (%d)\n", i, (int)(pat_found[i] & INT_MAX) - 1);
 }
 }
-
+*/
 	/* 11. Free device memory */
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_found) );
@@ -526,6 +526,7 @@ printf("GLOBAL PAT %d FOUND AT -> (%d)\n", i, (int)(pat_found[i] & INT_MAX) - 1)
 
 	/* 8. Stop global timer */
         CUDA_CHECK_FUNCTION( cudaDeviceSynchronize() );
+	MPI_Barrier( MPI_COMM_WORLD );
 	ttotal = cp_Wtime() - ttotal;
 
 	/* 9. Output for leaderboard */
