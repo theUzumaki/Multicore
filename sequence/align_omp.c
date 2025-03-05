@@ -368,7 +368,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Search for each pattern */
 	unsigned long start;
 	int pat;
-
+	omp_set_num_threads(2);
 	#pragma omp parallel for private(start, lind) reduction(+:pat_matches) reduction(+:seq_matches[:seq_length])
 	for( pat=0; pat < pat_number; pat++ ) {
 
