@@ -195,6 +195,8 @@ int main(int argc, char *argv[]) {
 
 	unsigned long seed = atol( argv[14] );
 
+	omp_set_num_threads(atoi(argv[15]));
+
 #ifdef DEBUG
 	/* DEBUG: Print arguments */
 	printf("\nArguments: seq_length=%lu\n", seq_length );
@@ -368,7 +370,6 @@ int main(int argc, char *argv[]) {
 	/* 5. Search for each pattern */
 	unsigned long start;
 	int pat;
-	omp_set_num_threads(2);
 	#pragma omp parallel for private(start, lind) reduction(+:pat_matches) reduction(+:seq_matches[:seq_length])
 	for( pat=0; pat < pat_number; pat++ ) {
 
