@@ -16,14 +16,20 @@ def run_executable(executable, input_data):
     return None
 
 def measure_execution_time(executable: str, input_data: list, n: int):
-    execution_times = []
+
+    print()
     print(f"EXECUTING {executable} {n} times")
     print(f"WITH INPUT: {input_data}")
     print()
 
-    for i in range(4):
+    open("execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
+    seq_time= run_executable("./align_seq", input_data)
+    open("execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(seq_time) + f"\n{executable}\n")
+    threads= [2, 4, 8, 16]
+    for cores in threads:
+        execution_times = []
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            futures = [executor.submit(run_executable, executable, input_data + [str(pow(2,i+1))]) for _ in range(n)]
+            futures = [executor.submit(run_executable, executable, input_data + [str(cores)]) for _ in range(n)]
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 execution_time = future.result()
                 if execution_time is not None:
@@ -32,15 +38,20 @@ def measure_execution_time(executable: str, input_data: list, n: int):
 
         average_time = sum(execution_times) / n
         print(f"Average Execution Time: {average_time:.6f} seconds")
-        line= f"{executable} {input_data} {average_time:.6f} seconds\n"
+        speedup= seq_time / average_time
+        efficiency= (speedup / cores) * 100
+        line= f"{average_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
         with open("execution_times.txt", "a") as f:
-            f.write(line) 
+            f.write(line)
 
 
 if __name__ == "__main__":
     executable_path = "./align_omp"  # Change this to your executable's path
-    args_string= "10000 0.35 0.2 0.25 0 0 0 10000 9000 9000 50 100 M 4353435"  # Change this to the required input
-    runs = 1000  # Number of times to run
-
-    measure_execution_time(executable_path, args_string.split(), runs)
+    runs = 50  # Number of times to run
+    with open("inputs.txt", 'r') as file:
+        for line in file:
+            # Strip any leading/trailing whitespace and split the line into arguments
+            args_string = line.strip()
+            # Call the function with the split arguments
+            measure_execution_time(executable_path, args_string.split(), runs)
 
