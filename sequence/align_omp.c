@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
 	unsigned long seed = atol( argv[14] );
 
-	omp_set_num_threads(atoi(argv[15]));
+	omp_set_num_threads(2);
 
 #ifdef DEBUG
 	/* DEBUG: Print arguments */
