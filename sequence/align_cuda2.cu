@@ -229,6 +229,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	unsigned long seed = atol( argv[14] );
+	int fixed_size = atoi( argv[15] );
 
 #ifdef DEBUG
 	/* DEBUG: Print arguments */
@@ -424,6 +425,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Subdivide work among MPI processes */
 	int size;
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	size= fixed_size;
 	int chunk_size = (pat_number + size - 1) / size;
 	int start_pat = rank * chunk_size;
 	int end_pat = (rank + 1) * chunk_size;
