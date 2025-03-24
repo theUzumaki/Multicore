@@ -372,57 +372,26 @@ int main(int argc, char *argv[]) {
 	unsigned long start;
 	int pat;
 	#pragma omp parallel for private(start, lind) reduction(+:pat_matches) reduction(+:pat_found[:pat_number]) reduction(+:seq_matches[:seq_length])
-	for (int combined_index = 0; combined_index < pat_number * seq_length; combined_index++) {
-		// Calculate pat and start from combined_index
-		pat = combined_index / seq_length;
-		start = combined_index % seq_length;
-
-		// Skip invalid combinations where start exceeds the valid range for the pattern
-		if (start > seq_length - pat_length[pat]) continue;
-
-		/* 5.1.1. For each pattern element */
-		for (lind = 0; lind < pat_length[pat]; lind++) {
-			// Stop this test when different nucleotides are found
-			if (sequence[start + lind] != pattern[pat][lind]) break;
-		}
-
-		/* 5.1.2. Check if the loop ended with a match */
-		if (lind == pat_length[pat]) {
-			pat_matches++;
-			pat_found[pat] = start + 1;
-		}
-
-		/* 5.2. Pattern found */
-		if (pat_found[pat] != 0) {
-			increment_matches(pat, pat_found, pat_length, seq_matches);
-			combined_index+= seq_length - start - 1;
-		}
-	}
-
-//	for( pat=0; pat < pat_number; pat++ ) {
+	for( pat=0; pat < pat_number; pat++ ) {
 
 		/* 5.1. For each possible starting position */
-//		for( start=0; start <= seq_length - pat_length[pat]; start++) {
+		for( start=0; start <= seq_length - pat_length[pat]; start++) {
 
 			/* 5.1.1. For each pattern element */
-//			for( lind=0; lind<pat_length[pat]; lind++) {
+			for( lind=0; lind<pat_length[pat]; lind++) {
 				/* Stop this test when different nucleotids are found */
-//				if ( sequence[start + lind] != pattern[pat][lind] ) break;
-//			}
-			/* 5.1.2. Check if the loop ended with a match */
-//			if ( lind == pat_length[pat] ) {
-//				pat_matches++;
-//				pat_found[pat] = start + 1;
-//				break;
-//			}
-//		}
+				if ( sequence[start + lind] != pattern[pat][lind] ) break;
+			}
 
-		/* 5.2. Pattern found */
-//		if ( pat_found[pat] != 0 ) {
-			/* 4.2.1. Increment the number of pattern matches on the sequence positions */
-//			increment_matches( pat, pat_found, pat_length, seq_matches );
-//		}
-//	}
+			/* 5.1.2. Check if the loop ended with a match */
+			if ( lind == pat_length[pat] ) {
+				pat_matches++;
+				pat_found[pat] = start + 1;
+				increment_matches( pat, pat_found, pat_length, seq_matches );
+				break;
+			}
+		}
+	}
 
 
 	/* 7. Check sums */
