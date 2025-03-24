@@ -55,10 +55,10 @@ void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_le
 	unsigned long ind;
 
 	for( ind=0; ind<pat_length[pat]; ind++) {
-		if ( seq_matches[ pat_found[pat] + ind ] == NOT_FOUND )
-			seq_matches[ pat_found[pat] + ind ] = 0;
+		if ( seq_matches[ pat_found[pat] - 1 + ind ] == NOT_FOUND )
+			seq_matches[ pat_found[pat] - 1 + ind ] = 0;
 		else
-			seq_matches[ pat_found[pat] + ind ] ++;
+			seq_matches[ pat_found[pat] - 1 + ind ] ++;
 	}
 }
 
@@ -195,7 +195,8 @@ int main(int argc, char *argv[]) {
 
 	unsigned long seed = atol( argv[14] );
 
-	omp_set_num_threads( atoi( argv[15] ) );
+	int proc_num = atoi( argv[15] );
+	omp_set_num_threads( proc_num );
 
 #ifdef DEBUG
 	/* DEBUG: Print arguments */
@@ -361,7 +362,7 @@ int main(int argc, char *argv[]) {
 
 	/* 4. Initialize ancillary structures */
 	for( ind=0; ind<pat_number; ind++) {
-		pat_found[ind] = (unsigned long)NOT_FOUND;
+		pat_found[ind] = 0;
 	}
 	for( lind=0; lind<seq_length; lind++) {
 		seq_matches[lind] = NOT_FOUND;
@@ -370,7 +371,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Search for each pattern */
 	unsigned long start;
 	int pat;
-	#pragma omp parallel for private(start, lind) reduction (+:pat_matches) reduction(+:seq_matches[:seq_length])
+	#pragma omp parallel for private(start, lind) reduction(+:pat_matches) reduction(+:pat_found[:pat_number]) reduction(+:seq_matches[:seq_length])
 	for( pat=0; pat < pat_number; pat++ ) {
 
 		/* 5.1. For each possible starting position */
@@ -384,14 +385,13 @@ int main(int argc, char *argv[]) {
 			/* 5.1.2. Check if the loop ended with a match */
 			if ( lind == pat_length[pat] ) {
 				pat_matches++;
-				#pragma omp atomic write
-				pat_found[pat] = start;
+				pat_found[pat] = start + 1;
 				break;
 			}
 		}
 
 		/* 5.2. Pattern found */
-		if ( pat_found[pat] != (unsigned long)NOT_FOUND ) {
+		if ( pat_found[pat] != 0 ) {
 			/* 4.2.1. Increment the number of pattern matches on the sequence positions */
 			increment_matches( pat, pat_found, pat_length, seq_matches );
 		}
@@ -402,8 +402,8 @@ int main(int argc, char *argv[]) {
 	unsigned long checksum_matches = 0;
 	unsigned long checksum_found = 0;
 	for( ind=0; ind < pat_number; ind++) {
-		if ( pat_found[ind] != (unsigned long)NOT_FOUND )
-			checksum_found = ( checksum_found + pat_found[ind] ) % CHECKSUM_MAX;
+		if ( pat_found[ind] != 0 )
+			checksum_found = ( checksum_found + pat_found[ind] - 1) % CHECKSUM_MAX;
 	}
 	for( lind=0; lind < seq_length; lind++) {
 		if ( seq_matches[lind] != NOT_FOUND )
