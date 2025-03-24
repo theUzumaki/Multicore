@@ -382,18 +382,14 @@ int main(int argc, char *argv[]) {
 				/* Stop this test when different nucleotids are found */
 				if ( sequence[start + lind] != pattern[pat][lind] ) break;
 			}
+
 			/* 5.1.2. Check if the loop ended with a match */
 			if ( lind == pat_length[pat] ) {
 				pat_matches++;
 				pat_found[pat] = start + 1;
+				increment_matches( pat, pat_found, pat_length, seq_matches );
 				break;
 			}
-		}
-
-		/* 5.2. Pattern found */
-		if ( pat_found[pat] != 0 ) {
-			/* 4.2.1. Increment the number of pattern matches on the sequence positions */
-			increment_matches( pat, pat_found, pat_length, seq_matches );
 		}
 	}
 
