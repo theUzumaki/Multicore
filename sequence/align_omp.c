@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
 	unsigned long seed = atol( argv[14] );
 
-	omp_set_num_threads(2);
+	omp_set_num_threads( atoi( argv[15] ) );
 
 #ifdef DEBUG
 	/* DEBUG: Print arguments */
@@ -370,7 +370,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Search for each pattern */
 	unsigned long start;
 	int pat;
-	#pragma omp parallel for private(start, lind) reduction(+:pat_matches) reduction(+:seq_matches[:seq_length])
+	#pragma omp parallel for private(start, lind) reduction (+:pat_matches) reduction(+:seq_matches[:seq_length])
 	for( pat=0; pat < pat_number; pat++ ) {
 
 		/* 5.1. For each possible starting position */
@@ -383,11 +383,9 @@ int main(int argc, char *argv[]) {
 			}
 			/* 5.1.2. Check if the loop ended with a match */
 			if ( lind == pat_length[pat] ) {
-				#pragma omp critical
-				{
-					pat_matches++;
-					pat_found[pat] = start;
-				}
+				pat_matches++;
+				#pragma omp atomic write
+				pat_found[pat] = start;
 				break;
 			}
 		}

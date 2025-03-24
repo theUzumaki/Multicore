@@ -1,3 +1,4 @@
+
 import subprocess
 import time
 import concurrent.futures
@@ -21,6 +22,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     print(f"EXECUTING {executable} {n} times")
     print(f"WITH INPUT: {input_data}")
     print()
+
 
     open("execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
     seq_time= run_executable("./align_seq", input_data)
@@ -47,7 +49,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
 
 if __name__ == "__main__":
     executable_path = "./align_omp"  # Change this to your executable's path
-    runs = 50  # Number of times to run
+    runs = 20  # Number of times to run
     with open("inputs.txt", 'r') as file:
         for line in file:
             # Strip any leading/trailing whitespace and split the line into arguments
