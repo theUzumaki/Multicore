@@ -47,7 +47,8 @@ def measure_execution_time(executable: str, input_data: list, n: int):
         line= f"{average_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
         with open("execution_times.txt", "a") as f:
             f.write(line)
-    open("all_times.txt", "a").write("\n"+all_times)
+    open("all_times.txt", "a").write("\n")
+    open("all_times.txt", "a").write(all_times)
 
 if __name__ == "__main__":
     executable_path = "./align_m_c"  # Change this to your executable's path
