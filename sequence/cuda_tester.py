@@ -28,6 +28,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     seq_time= run_executable("./align_m_c", input_data + ["1"])
     open("execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     threads= [2, 4, 8, 16]
+    all_times= []
     for cores in threads:
         execution_times = []
         with concurrent.futures.ThreadPoolExecutor(4) as executor:
@@ -42,15 +43,18 @@ def measure_execution_time(executable: str, input_data: list, n: int):
         print(f"Average Execution Time: {average_time:.6f} seconds")
         speedup= seq_time / average_time
         efficiency= (speedup / cores) * 100
+        all_times.append(input_data + execution_times)
         line= f"{average_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
         with open("execution_times.txt", "a") as f:
             f.write(line)
-
+    open("all_times.txt", "a").write("\n"+all_times)
 
 if __name__ == "__main__":
     executable_path = "./align_m_c"  # Change this to your executable's path
     runs = 20  # Number of times to run
-    open("execution_times.txt", "a").write("\n\n----SECOND TEST----\nChanged sequence time with parallel on one process")
+    header= "\n\n----SECOND TEST----\nChanged sequence time with parallel on one process"
+    open("execution_times.txt", "a").write(header)
+    open("all_times.txt", "a").write(header)
     with open("inputs.txt", 'r') as file:
         for line in file:
             # Strip any leading/trailing whitespace and split the line into arguments
