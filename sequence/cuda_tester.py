@@ -1,3 +1,4 @@
+
 import subprocess
 import time
 import concurrent.futures
@@ -22,9 +23,10 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     print(f"WITH INPUT: {input_data}")
     print()
 
-    open("cuda_execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
-    seq_time= run_executable("./align_seq", input_data)
-    open("cuda_execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(seq_time) + f"\n{executable}\n")
+
+    open("execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
+    seq_time= run_executable("./align_cuda", input_data + ["1"])
+    open("execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     threads= [2, 4, 8, 16]
     for cores in threads:
         execution_times = []
@@ -41,13 +43,14 @@ def measure_execution_time(executable: str, input_data: list, n: int):
         speedup= seq_time / average_time
         efficiency= (speedup / cores) * 100
         line= f"{average_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
-        with open("cuda_execution_times.txt", "a") as f:
+        with open("execution_times.txt", "a") as f:
             f.write(line)
 
 
 if __name__ == "__main__":
     executable_path = "./align_m_c"  # Change this to your executable's path
-    runs = 50  # Number of times to run
+    runs = 20  # Number of times to run
+    open("execution_times.txt", "a").write("\n\n----SECOND TEST----\nChanged sequence time with parallel on one process")
     with open("inputs.txt", 'r') as file:
         for line in file:
             # Strip any leading/trailing whitespace and split the line into arguments
