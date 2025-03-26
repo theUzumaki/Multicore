@@ -458,6 +458,7 @@ int main(int argc, char *argv[]) {
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
+	cudaOccupancyMaxPotentialBlockSize(&blocks_per_grid, &threads_per_block, search_patterns, 0, 0);
 	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern + start_pat, d_pat_length + start_pat, d_pat_matches, d_pat_found + start_pat, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 

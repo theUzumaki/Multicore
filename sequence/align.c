@@ -17,7 +17,6 @@
 #include<limits.h>
 #include<sys/time.h>
 
-
 /* Arbitrary value to indicate that no matches are found */
 #define	NOT_FOUND	-1
 
@@ -149,6 +148,7 @@ void show_usage( char *program_name ) {
  * MAIN PROGRAM
  */
 int main(int argc, char *argv[]) {
+
 	/* 0. Default output and error without buffering, forces to write immediately */
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
@@ -386,6 +386,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+
 	/* 7. Check sums */
 	unsigned long checksum_matches = 0;
 	unsigned long checksum_found = 0;
@@ -423,6 +424,7 @@ int main(int argc, char *argv[]) {
  * STOP HERE: DO NOT CHANGE THE CODE BELOW THIS POINT
  *
  */
+
 
 	/* 8. Stop global timer */
 	ttotal = cp_Wtime() - ttotal;
