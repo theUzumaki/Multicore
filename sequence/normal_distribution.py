@@ -9,13 +9,19 @@ def read_data_from_file(filename):
         for line in file:
             line = line.strip().split(" ")
             if line != [""] and line[0][0] == "[":
-                line = line[0][1:]
-                for index in range(14, len(line) - 1):
-                    value = float(line[index][:-2])
+                for index in range(len(line)):
+                    if index % (len(line)/4) < 13:
+                        continue
+                    elif line[index][0] == "[":
+                        value = float(line[index][2:-2])
+                    else:
+                        value = float(line[index][1:-2])
                     times.append(value)
         
         mean = np.mean(times)
         std_dev = np.std(times)
+        print(mean)
+        print(std_dev)
         
 
         return mean, std_dev

@@ -59,11 +59,9 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
         if (pat >= pat_number) return;
 
         unsigned long start, lind;
-//printf("PAT NUM: %d WITH LENGTH: %lu AND STARTER: %c\n", pat, d_pat_length[pat], d_pattern[pat][0]);
-//if (pat == 0) printf("LENGTH PAT: %lu LENGTH SEQ: %lu LIMIT: %lu SEQUENCE: \n", d_pat_length[pat], seq_length, seq_length - d_pat_length[pat]);
+		
         for (start = 0; start <= seq_length - d_pat_length[pat]; start++) {
-//if (pat == 0) printf("%lu -> ", start);
-//if (pat == 0) printf("(%c)\n", d_sequence[start]);
+
                 for (lind = 0; lind < d_pat_length[pat]; lind++) {
                         if (d_sequence[start + lind] != d_pattern[pat][lind]) break;
                 }
@@ -73,7 +71,6 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	                for (lind = 0; lind < d_pat_length[pat]; lind++) {
                                 atomicAdd(&d_seq_matches[start + lind], 1);
                         }
-//if (pat == 0) printf("-----> BREAK <-----");
                         break;
                 }
 	}
@@ -438,13 +435,14 @@ int main(int argc, char *argv[]) {
 	int local_pat_matches= 0;
 
 	/* 6. Allocate device memory for sequence and patterns */
+/*
 	char *d_sequence;
 	char *pinned_sequence;
 	CUDA_CHECK_FUNCTION( cudaMallocHost( &pinned_sequence, sizeof(char) * seq_length ) );
 	memcpy(pinned_sequence, sequence, sizeof(char) * seq_length);
-	
+*/	
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_sequence, sizeof(char) * seq_length ) );
-	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, pinned_sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
 	CUDA_CHECK_FUNCTION( cudaFreeHost(pinned_sequence) );
 
 	unsigned long *d_pat_found;
@@ -463,7 +461,6 @@ int main(int argc, char *argv[]) {
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
-	cudaOccupancyMaxPotentialBlockSize(&blocks_per_grid, &threads_per_block, search_patterns, 0, 0);
 	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern + start_pat, d_pat_length + start_pat, d_pat_matches, d_pat_found + start_pat, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
@@ -471,22 +468,43 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
-/*
-for (int i= 0; i < pat_per_proc; i++){
-printf("RANK %d PAT %d FOUND AT -> (%d)\n", rank, i + start_pat, (int)(local_pat_found[i] & INT_MAX) - 1);
-}
-*/
-//printf("START PAT %d MOVES %p TO %p\n", start_pat, pat_found, pat_found + start_pat);
+
 	/* 10. Gather results from all MPI processes */
+	ReductionData local_data = {0};
+    ReductionData global_data = {0};
+
+	struct ReductionData {
+		unsigned long local_pat_found;
+		int local_seq_matches;
+		int local_pat_matches;
+	};
+
+    MPI_Datatype reduction_type;
+    int block_lengths[3] = {1, 1, 1};
+    MPI_Aint displacements[3];
+    MPI_Aint base_address;
+
+    MPI_Get_address(&local_data, &base_address);
+    MPI_Get_address(&local_data.local_pat_found, &displacements[0]);
+    MPI_Get_address(&local_data.local_seq_matches, &displacements[1]);
+    MPI_Get_address(&local_data.local_pat_matches, &displacements[2]);
+
+    displacements[0] -= base_address;
+    displacements[1] -= base_address;
+    displacements[2] -= base_address;
+
+    MPI_Datatype types[3] = {MPI_UNSIGNED_LONG, MPI_INT, MPI_INT};
+    MPI_Type_create_struct(3, block_lengths, displacements, types, &reduction_type);
+    MPI_Type_commit(&reduction_type);
+
+    MPI_Reduce(&local_data, &global_data, 1, reduction_type, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    MPI_Type_free(&reduction_type);
+    MPI_Finalize();
+/*
 	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-/*
-if (rank == 0){
-for (int i= 0; i < pat_number; i++){
-printf("GLOBAL PAT %d FOUND AT -> (%d)\n", i, (int)(pat_found[i] & INT_MAX) - 1);
-}
-}
 */
 	/* 11. Free device memory */
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
