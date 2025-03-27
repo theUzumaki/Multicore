@@ -90,6 +90,19 @@ void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_le
 			seq_matches[ pat_found[pat] + ind ] ++;
 	}
 }
+
+void custom_reduce_function(void *in, void *inout, int *len, MPI_Datatype *datatype) {
+    // Cast the input pointers to your custom structure type
+    MyStruct *in_data = (MyStruct *)in;
+    MyStruct *inout_data = (MyStruct *)inout;
+
+    // Perform element-wise summation
+    for (int i = 0; i < *len; i++) {
+        inout_data[i].local_pat_found += in_data[i].local_pat_found;
+        inout_data[i].local_seq_matches += in_data[i].local_seq_matches;
+        inout_data[i].local_pat_matches += in_data[i].local_pat_matches;
+    }
+}
 /*
  *
  * STOP HERE: DO NOT CHANGE THE CODE BELOW THIS POINT
@@ -497,7 +510,12 @@ int main(int argc, char *argv[]) {
     MPI_Type_create_struct(3, block_lengths, displacements, types, &reduction_type);
     MPI_Type_commit(&reduction_type);
 
-    MPI_Reduce(&local_data, &global_data, 1, reduction_type, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Op custom_op;
+    MPI_Op_create(&custom_reduce_function, 1, &custom_op);
+
+    MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
+
+	MPI_Op_free(&custom_op);
 
     MPI_Type_free(&reduction_type);
     MPI_Finalize();
