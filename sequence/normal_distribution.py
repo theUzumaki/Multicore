@@ -5,20 +5,17 @@ from scipy.stats import norm
 # Function to read and process data
 def read_data_from_file(filename):
     with open(filename, 'r') as file:
-        line = file.readline().strip().split(" ")
-
-        value= 0
-        mean = 0
-        std_dev = 0
-        if line[0][0] == "[":
-            times = []
-            line = line[:-1]
-            for index in range(14, len(line)):
-                value = int(line[index][1:-1])
-                times.append(value)
-            
-            mean = np.mean(times)
-            std_dev = np.std(times)
+        times = []
+        for line in file:
+            line = line.strip().split(" ")
+            if line != [""] and line[0][0] == "[":
+                line = line[0][1:]
+                for index in range(14, len(line) - 1):
+                    value = float(line[index][:-2])
+                    times.append(value)
+        
+        mean = np.mean(times)
+        std_dev = np.std(times)
         
 
         return mean, std_dev
@@ -42,7 +39,8 @@ def plot_normal_distribution(mean, std_dev, test):
     plt.close()  # Close the figure to free memory
 
 # Main execution
-filename = 'all_times.txt'  # Change this to your actual filename
+filename = '/home/iamt/Work/Multicore/sequence/all_times.txt'  # Change this to your actual filename
 for i in range(0, 3):
+    test= i+1
     mean, std_dev = read_data_from_file(filename)
     plot_normal_distribution(mean, std_dev, test)
