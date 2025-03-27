@@ -10,8 +10,6 @@ def run_executable(executable, input_data):
         capture_output=True
     )
     output_lines = process.stdout.strip().split("\n")
-    error_lines = process.stderr.strip().split("\n")
-    print("output-> "+str(output_lines)+" error-> "+str(error_lines))
     if len(output_lines) >= 1:
         first_line_words = output_lines[0].split()
         if len(first_line_words) >= 2:
@@ -29,11 +27,11 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     open("cuda_execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
     seq_time= run_executable("./align_m_c", input_data + ["1"])
     open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
-    threads= [2, 4, 8, 16]
+    threads= [2, 4]
     all_times= []
     for cores in threads:
         execution_times = []
-        with concurrent.futures.ThreadPoolExecutor(4) as executor:
+        with concurrent.futures.ThreadPoolExecutor(1) as executor:
             futures = [executor.submit(run_executable, executable, input_data + [str(cores)]) for _ in range(n)]
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 execution_time = future.result()
