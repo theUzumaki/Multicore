@@ -435,8 +435,8 @@ int main(int argc, char *argv[]) {
 	int local_pat_matches= 0;
 
 	/* 6. Allocate device memory for sequence and patterns */
-/*
 	char *d_sequence;
+/*
 	char *pinned_sequence;
 	CUDA_CHECK_FUNCTION( cudaMallocHost( &pinned_sequence, sizeof(char) * seq_length ) );
 	memcpy(pinned_sequence, sequence, sizeof(char) * seq_length);
@@ -470,14 +470,14 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
-	ReductionData local_data = {0};
-    ReductionData global_data = {0};
-
 	struct ReductionData {
 		unsigned long local_pat_found;
 		int local_seq_matches;
 		int local_pat_matches;
 	};
+
+	ReductionData local_data = {0};
+	ReductionData global_data = {0};
 
     MPI_Datatype reduction_type;
     int block_lengths[3] = {1, 1, 1};
