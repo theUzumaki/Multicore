@@ -91,10 +91,16 @@ void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_le
 	}
 }
 
+struct ReductionData {
+	unsigned long local_pat_found;
+	int local_seq_matches;
+	int local_pat_matches;
+};
+
 void custom_reduce_function(void *in, void *inout, int *len, MPI_Datatype *datatype) {
     // Cast the input pointers to your custom structure type
-    MyStruct *in_data = (MyStruct *)in;
-    MyStruct *inout_data = (MyStruct *)inout;
+    ReductionData *in_data = (ReductionData *)in;
+    ReductionData *inout_data = (ReductionData *)inout;
 
     // Perform element-wise summation
     for (int i = 0; i < *len; i++) {
@@ -483,11 +489,6 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
-	struct ReductionData {
-		unsigned long local_pat_found;
-		int local_seq_matches;
-		int local_pat_matches;
-	};
 
 	ReductionData local_data = {0};
 	ReductionData global_data = {0};
