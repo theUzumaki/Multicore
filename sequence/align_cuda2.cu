@@ -519,7 +519,6 @@ int main(int argc, char *argv[]) {
 	MPI_Op_free(&custom_op);
 
     MPI_Type_free(&reduction_type);
-    MPI_Finalize();
 /*
 	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
