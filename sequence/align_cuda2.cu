@@ -443,7 +443,7 @@ int main(int argc, char *argv[]) {
 */	
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_sequence, sizeof(char) * seq_length ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
-	CUDA_CHECK_FUNCTION( cudaFreeHost(pinned_sequence) );
+//	CUDA_CHECK_FUNCTION( cudaFreeHost(pinned_sequence) );
 
 	unsigned long *d_pat_found;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_number ) );
