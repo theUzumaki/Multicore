@@ -517,22 +517,20 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
-	ReductionData red_data;
-
-	MPI_Datatype reduction_type;
-	build_custom_struct(red_data.pat_found, red_data.seq_matches, red_data.pat_matches, red_data.pat_number, red_data.seq_length, &reduction_type);
-
-	MPI_Op custom_op;
-    MPI_Op_create(&custom_reduce_function, 1, &custom_op);
-	
 	ReductionData local_data;
 	ReductionData global_data;
-
+	
 	local_data.pat_found = local_pat_found;
 	local_data.seq_matches = local_seq_matches;
 	local_data.pat_matches = local_pat_matches;
 	local_data.pat_number = pat_number;
 	local_data.seq_length = seq_length;
+
+	MPI_Datatype reduction_type;
+	build_custom_struct(local_data.pat_found, local_data.seq_matches, local_data.pat_matches, local_data.pat_number, local_data.seq_length, &reduction_type);
+
+	MPI_Op custom_op;
+    MPI_Op_create(&custom_reduce_function, 1, &custom_op);
 
 	global_data.pat_found = pat_found;
 	global_data.seq_matches = seq_matches;
