@@ -100,7 +100,7 @@ struct ReductionData {
 };
 
 void build_custom_struct(unsigned long *pat_found, int *seq_matches, int pat_matches, int pat_number, int seq_length, MPI_Datatype *reduction_type) {
-	MPI_Aint base_address, displacements[3];
+	MPI_Aint base_address, displacements[5];
 	int block_lengths[5] = {pat_number, seq_length, 1, 1, 1};
 	MPI_Datatype types[5] = {MPI_UNSIGNED_LONG, MPI_INT, MPI_INT, MPI_INT, MPI_INT};
 
