@@ -94,7 +94,7 @@ void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_le
 struct ReductionData {
 	unsigned long *local_pat_found;
 	int *local_seq_matches;
-	int *local_pat_matches;
+	int local_pat_matches;
 };
 
 void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype, int pat_number, int seq_length) {
@@ -501,7 +501,7 @@ int main(int argc, char *argv[]) {
 	ReductionData global_data = {0};
 
     MPI_Datatype reduction_type;
-    int block_lengths[3] = {1, seq_length, (int)pat_number};
+    int block_lengths[3] = {pat_number, (int)seq_length, 1};
     MPI_Aint displacements[3];
     MPI_Aint base_address;
 
