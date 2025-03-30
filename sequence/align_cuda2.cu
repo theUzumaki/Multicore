@@ -92,26 +92,48 @@ void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_le
 }
 
 struct ReductionData {
-	unsigned long *local_pat_found;
-	int *local_seq_matches;
-	int local_pat_matches;
+	unsigned long *pat_found;
+	int *seq_matches;
+	int pat_matches;
 	int pat_number;
 	int seq_length;
 };
 
+void build_custom_struct(unsigned long *pat_found, int *seq_matches, int pat_matches, int pat_number, int seq_length, MPI_Datatype *reduction_type) {
+	MPI_Aint base_address, displacements[3];
+	int block_lengths[5] = {pat_number, seq_length, 1, 1, 1};
+	MPI_Datatype types[5] = {MPI_UNSIGNED_LONG, MPI_INT, MPI_INT, MPI_INT, MPI_INT};
+
+	MPI_Get_address(pat_found, &base_address);
+	MPI_Get_address(pat_found, &displacements[0]);
+	MPI_Get_address(seq_matches, &displacements[1]);
+	MPI_Get_address(&pat_matches, &displacements[2]);
+	MPI_Get_address(&pat_number, &displacements[3]);
+	MPI_Get_address(&seq_length, &displacements[4]);
+
+	displacements[0] -= base_address;
+	displacements[1] -= base_address;
+	displacements[2] -= base_address;
+	displacements[3] -= base_address;
+	displacements[4] -= base_address;
+
+	MPI_Type_create_struct(5, block_lengths, displacements, types, reduction_type);
+	MPI_Type_commit(reduction_type);
+}
+
 void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype) {
-	printf("CHECK 0\n");
+
 	ReductionData *in_data = (ReductionData *)in;
 	ReductionData *out_data = (ReductionData *)out;
-printf("CHECK 1\n");
+
 	for (int j = 0; j < (*out_data).pat_number; j++) {
 		(*out_data).local_pat_found[j] += (*in_data).local_pat_found[j];
 	}
-	printf("CHECK 2\n");
+	
 	for (int j = 0; j < (*out_data).seq_length; j++) {
 		(*out_data).local_seq_matches[j] += (*in_data).local_seq_matches[j];
 	}
-	printf("CHECK 3\n");
+	
 	(*out_data).local_pat_matches += (*in_data).local_pat_matches;
 }
 /*
@@ -495,48 +517,32 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
-printf("CHECK 1\n");
-	ReductionData local_data = {
-		local_pat_found,
-		local_seq_matches,
-		local_pat_matches,
-		pat_number,
-		(int)seq_length
-	};
-printf("CHECK 2\n");
-	ReductionData global_data = {
-		pat_found,
-		seq_matches,
-		pat_matches,
-		pat_number,
-		(int)seq_length
-	};
-printf("CHECK 3\n");
-    MPI_Datatype reduction_type;
-    int block_lengths[3] = {pat_number, (int)seq_length, 1};
-    MPI_Aint displacements[3];
-    MPI_Aint base_address;
-printf("CHECK 4\n");
-    MPI_Get_address(&local_data, &base_address);
-    MPI_Get_address(&local_data.local_pat_found, &displacements[0]);
-    MPI_Get_address(&local_data.local_seq_matches, &displacements[1]);
-    MPI_Get_address(&local_data.local_pat_matches, &displacements[2]);
-printf("CHECK 5\n");
-    displacements[0] -= base_address;
-    displacements[1] -= base_address;
-    displacements[2] -= base_address;
-	printf("CHECK 6\n");
-    MPI_Datatype types[3] = {MPI_UNSIGNED_LONG, MPI_INT, MPI_INT};
-    MPI_Type_create_struct(3, block_lengths, displacements, types, &reduction_type);
-    MPI_Type_commit(&reduction_type);
-	printf("CHECK 7\n");
+	ReductionData red_data;
+
+	MPI_Datatype reduction_type;
+	build_custom_struct(red_data.pat_found, red_data.seq_matches, red_data.pat_matches, red_data.pat_number, red_data.seq_length, &reduction_type);
+
 	MPI_Op custom_op;
     MPI_Op_create(&custom_reduce_function, 1, &custom_op);
-	printf("CHECK 8\n");
+	
+	ReductionData local_data;
+	ReductionData global_data;
+
+	local_data.pat_found = local_pat_found;
+	local_data.seq_matches = local_seq_matches;
+	local_data.pat_matches = local_pat_matches;
+	local_data.pat_number = pat_number;
+	local_data.seq_length = seq_length;
+
+	global_data.pat_found = pat_found;
+	global_data.seq_matches = seq_matches;
+	global_data.pat_matches = pat_matches;
+	global_data.pat_number = pat_number;
+	global_data.seq_length = seq_length;
+
     MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
-	printf("CHECK 9\n");
+
 	MPI_Op_free(&custom_op);
-	printf("CHECK 10\n");
     MPI_Type_free(&reduction_type);
 /*
 	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
