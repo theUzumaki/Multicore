@@ -537,7 +537,7 @@ printf("CHECK 3\n");
 	global_data.pat_matches = pat_matches;
 	global_data.pat_number = pat_number;
 	global_data.seq_length = seq_length;
-pritnf("CHECK 4\n");
+printf("CHECK 4\n");
     MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
 printf("CHECK 5\n");
 
