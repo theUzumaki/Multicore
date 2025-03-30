@@ -97,18 +97,18 @@ struct ReductionData {
 	int *local_pat_matches;
 };
 
-void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype) {
+void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype, int pat_number, int seq_length) {
 	
 	ReductionData *in_data = (ReductionData *)in;
 	ReductionData *out_data = (ReductionData *)out;
 
 	for (int j = 0; j < pat_number; j++) {
-		out_data.local_pat_found[j] += in_data[i].local_pat_found[j];
+		*out_data.local_pat_found[j] += *in_data.local_pat_found[j];
 	}
 	for (int j = 0; j < seq_length; j++) {
-		out_data.local_seq_matches[j] += in_data[i].local_seq_matches[j];
+		*out_data.local_seq_matches[j] += *in_data.local_seq_matches[j];
 	}
-	out_data.local_pat_matches += in_data[i].local_pat_matches;
+	*out_data.local_pat_matches += *in_data.local_pat_matches;
 }
 /*
  *
@@ -501,7 +501,7 @@ int main(int argc, char *argv[]) {
 	ReductionData global_data = {0};
 
     MPI_Datatype reduction_type;
-    int block_lengths[3] = {1, seq_length, pat_number};
+    int block_lengths[3] = {1, seq_length, (int)pat_number};
     MPI_Aint displacements[3];
     MPI_Aint base_address;
 
@@ -521,7 +521,7 @@ int main(int argc, char *argv[]) {
 	MPI_Op custom_op;
     MPI_Op_create(&custom_reduce_function, 1, &custom_op);
 
-    MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD, seq_length, (int)pat_number);
 
 	MPI_Op_free(&custom_op);
 
