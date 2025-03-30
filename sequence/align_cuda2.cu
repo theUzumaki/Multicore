@@ -95,17 +95,19 @@ struct ReductionData {
 	unsigned long *local_pat_found;
 	int *local_seq_matches;
 	int local_pat_matches;
+	int pat_number;
+	int seq_length;
 };
 
-void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype, int pat_number, int seq_length) {
+void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype) {
 	
 	ReductionData *in_data = (ReductionData *)in;
 	ReductionData *out_data = (ReductionData *)out;
 
-	for (int j = 0; j < pat_number; j++) {
+	for (int j = 0; j < out.pat_number; j++) {
 		(*out_data).local_pat_found[j] += (*in_data).local_pat_found[j];
 	}
-	for (int j = 0; j < seq_length; j++) {
+	for (int j = 0; j < out.seq_length; j++) {
 		(*out_data).local_seq_matches[j] += (*in_data).local_seq_matches[j];
 	}
 	(*out_data).local_pat_matches += (*in_data).local_pat_matches;
@@ -494,7 +496,9 @@ int main(int argc, char *argv[]) {
 	ReductionData local_data = {
 		local_pat_found,
 		local_seq_matches,
-		local_pat_matches
+		local_pat_matches,
+		pat_number,
+		seq_length
 	};
 	ReductionData *local_data_ptr = &local_data;
 
