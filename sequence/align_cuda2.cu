@@ -356,11 +356,10 @@ int main(int argc, char *argv[]) {
 		exit( EXIT_FAILURE );
 	}
 	for( ind=0; ind<pat_number; ind++ ) {
-		CUDA_CHECK_FUNCTION( cudaMalloc( &(d_pattern_in_host[ind]), sizeof(char) * pat_length[ind] ) );
-		CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern_in_host[ind], pattern[ind], pat_length[ind] * sizeof(char), cudaMemcpyHostToDevice ) );
+		CUDA_CHECK_FUNCTION( cudaMalloc( &(d_pattern_in_host[ind]), sizeof(char *) * pat_length[ind] ) );
+        	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern_in_host[ind], pattern[ind], pat_length[ind] * sizeof(char), cudaMemcpyHostToDevice ) );
 	}
-	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern, d_pattern_in_host, pat_number * sizeof(char*), cudaMemcpyHostToDevice ) );
-	free(d_pattern_in_host);
+	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern, d_pattern_in_host, pat_number * sizeof(char *), cudaMemcpyHostToDevice ) );
 
 	/* Avoid the usage of arguments to take strategic decisions
 	 * In a real case the user only has the patterns and sequence data to analize
@@ -494,7 +493,7 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
-
+printf("CHECK 1\n");
 	ReductionData local_data = {
 		local_pat_found,
 		local_seq_matches,
@@ -502,34 +501,34 @@ int main(int argc, char *argv[]) {
 		pat_number,
 		(int)seq_length
 	};
-
+printf("CHECK 2\n");
 	ReductionData global_data = {0};
-
+printf("CHECK 3\n");
     MPI_Datatype reduction_type;
     int block_lengths[3] = {pat_number, (int)seq_length, 1};
     MPI_Aint displacements[3];
     MPI_Aint base_address;
-
+printf("CHECK 4\n");
     MPI_Get_address(&local_data, &base_address);
     MPI_Get_address(&local_data.local_pat_found, &displacements[0]);
     MPI_Get_address(&local_data.local_seq_matches, &displacements[1]);
     MPI_Get_address(&local_data.local_pat_matches, &displacements[2]);
-
+printf("CHECK 5\n");
     displacements[0] -= base_address;
     displacements[1] -= base_address;
     displacements[2] -= base_address;
-
+	printf("CHECK 6\n");
     MPI_Datatype types[3] = {MPI_UNSIGNED_LONG, MPI_INT, MPI_INT};
     MPI_Type_create_struct(3, block_lengths, displacements, types, &reduction_type);
     MPI_Type_commit(&reduction_type);
-
+	printf("CHECK 7\n");
 	MPI_Op custom_op;
     MPI_Op_create(&custom_reduce_function, 1, &custom_op);
-
+	printf("CHECK 8\n");
     MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
-
+	printf("CHECK 9\n");
 	MPI_Op_free(&custom_op);
-
+	printf("CHECK 10\n");
     MPI_Type_free(&reduction_type);
 /*
 	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
