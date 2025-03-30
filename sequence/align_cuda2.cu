@@ -104,10 +104,10 @@ void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatyp
 	ReductionData *in_data = (ReductionData *)in;
 	ReductionData *out_data = (ReductionData *)out;
 
-	for (int j = 0; j < out.pat_number; j++) {
+	for (int j = 0; j < (*out_data).pat_number; j++) {
 		(*out_data).local_pat_found[j] += (*in_data).local_pat_found[j];
 	}
-	for (int j = 0; j < out.seq_length; j++) {
+	for (int j = 0; j < (*out_data).seq_length; j++) {
 		(*out_data).local_seq_matches[j] += (*in_data).local_seq_matches[j];
 	}
 	(*out_data).local_pat_matches += (*in_data).local_pat_matches;
@@ -525,7 +525,7 @@ int main(int argc, char *argv[]) {
 	MPI_Op custom_op;
     MPI_Op_create(&custom_reduce_function, 1, &custom_op);
 
-    MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD, seq_length, (int)pat_number);
+    MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
 
 	MPI_Op_free(&custom_op);
 
