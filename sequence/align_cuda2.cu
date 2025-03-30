@@ -504,7 +504,13 @@ printf("CHECK 1\n");
 		(int)seq_length
 	};
 printf("CHECK 2\n");
-	ReductionData global_data = {0};
+	ReductionData global_data = {
+		pat_found,
+		seq_matches,
+		pat_matches,
+		pat_number,
+		(int)seq_length
+	};
 printf("CHECK 3\n");
     MPI_Datatype reduction_type;
     int block_lengths[3] = {pat_number, (int)seq_length, 1};
