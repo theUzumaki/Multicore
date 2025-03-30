@@ -445,6 +445,7 @@ int main(int argc, char *argv[]) {
 	int size;
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	size= fixed_size;
+	printf("Number of processes: %d\n", size);
 	int chunk_size = (pat_number + size - 1) / size;
 	int start_pat = rank * chunk_size;
 	int end_pat = (rank + 1) * chunk_size;
@@ -498,9 +499,8 @@ int main(int argc, char *argv[]) {
 		local_seq_matches,
 		local_pat_matches,
 		pat_number,
-		seq_length
+		(int)seq_length
 	};
-	ReductionData *local_data_ptr = &local_data;
 
 	ReductionData global_data = {0};
 
