@@ -92,22 +92,23 @@ void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_le
 }
 
 struct ReductionData {
-	unsigned long local_pat_found;
-	int local_seq_matches;
-	int local_pat_matches;
+	unsigned long *local_pat_found;
+	int *local_seq_matches;
+	int *local_pat_matches;
 };
 
-void custom_reduce_function(void *in, void *inout, int *len, MPI_Datatype *datatype) {
-    // Cast the input pointers to your custom structure type
-    ReductionData *in_data = (ReductionData *)in;
-    ReductionData *inout_data = (ReductionData *)inout;
+void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype) {
+	
+	ReductionData *in_data = (ReductionData *)in;
+	ReductionData *out_data = (ReductionData *)out;
 
-    // Perform element-wise summation
-    for (int i = 0; i < *len; i++) {
-        inout_data[i].local_pat_found += in_data[i].local_pat_found;
-        inout_data[i].local_seq_matches += in_data[i].local_seq_matches;
-        inout_data[i].local_pat_matches += in_data[i].local_pat_matches;
-    }
+	for (int j = 0; j < pat_number; j++) {
+		out_data.local_pat_found[j] += in_data[i].local_pat_found[j];
+	}
+	for (int j = 0; j < seq_length; j++) {
+		out_data.local_seq_matches[j] += in_data[i].local_seq_matches[j];
+	}
+	out_data.local_pat_matches += in_data[i].local_pat_matches;
 }
 /*
  *
@@ -490,11 +491,17 @@ int main(int argc, char *argv[]) {
 
 	/* 10. Gather results from all MPI processes */
 
-	ReductionData local_data = {0};
+	ReductionData local_data = {
+		local_pat_found,
+		local_seq_matches,
+		local_pat_matches
+	};
+	ReductionData *local_data_ptr = &local_data;
+
 	ReductionData global_data = {0};
 
     MPI_Datatype reduction_type;
-    int block_lengths[3] = {1, 1, 1};
+    int block_lengths[3] = {1, seq_length, pat_number};
     MPI_Aint displacements[3];
     MPI_Aint base_address;
 
