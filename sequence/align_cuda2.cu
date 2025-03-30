@@ -537,7 +537,13 @@ printf("CHECK 3\n");
 	global_data.pat_matches = pat_matches;
 	global_data.pat_number = pat_number;
 	global_data.seq_length = seq_length;
-printf("CHECK 4\n");
+printf("CHECK 4, addresses: %p, %p\n", local_data.pat_found, global_data.pat_found);
+printf("CHECK 4.1, addresses: %p, %p\n", local_data.seq_matches, global_data.seq_matches);
+printf("CHECK 4.2, addresses: %p, %p\n", &local_data.pat_matches, &global_data.pat_matches);
+printf("CHECK 4.3, addresses: %p, %p\n", &local_data.pat_number, &global_data.pat_number);
+printf("CHECK 4.4, addresses: %p, %p\n", &local_data.seq_length, &global_data.seq_length);
+printf("CHECK 4.5, addresses: %p, %p\n", &local_data, &global_data);
+printf("CHECK 4.6, addresses: %p, %p\n", &reduction_type, &custom_op);
     MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
 printf("CHECK 5\n");
 
