@@ -525,20 +525,21 @@ int main(int argc, char *argv[]) {
 	local_data.pat_matches = local_pat_matches;
 	local_data.pat_number = pat_number;
 	local_data.seq_length = seq_length;
-
+printf("CHECK 1\n");
 	MPI_Datatype reduction_type;
 	build_custom_struct(local_data.pat_found, local_data.seq_matches, local_data.pat_matches, local_data.pat_number, local_data.seq_length, &reduction_type);
-
+printf("CHECK 2\n");
 	MPI_Op custom_op;
     MPI_Op_create(&custom_reduce_function, 1, &custom_op);
-
+printf("CHECK 3\n");
 	global_data.pat_found = pat_found;
 	global_data.seq_matches = seq_matches;
 	global_data.pat_matches = pat_matches;
 	global_data.pat_number = pat_number;
 	global_data.seq_length = seq_length;
-
+pritnf("CHECK 4\n");
     MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
+printf("CHECK 5\n");
 
 	MPI_Op_free(&custom_op);
     MPI_Type_free(&reduction_type);
