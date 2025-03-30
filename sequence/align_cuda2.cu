@@ -100,16 +100,18 @@ struct ReductionData {
 };
 
 void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype) {
-	
+	printf("CHECK 0\n");
 	ReductionData *in_data = (ReductionData *)in;
 	ReductionData *out_data = (ReductionData *)out;
-
+printf("CHECK 1\n");
 	for (int j = 0; j < (*out_data).pat_number; j++) {
 		(*out_data).local_pat_found[j] += (*in_data).local_pat_found[j];
 	}
+	printf("CHECK 2\n");
 	for (int j = 0; j < (*out_data).seq_length; j++) {
 		(*out_data).local_seq_matches[j] += (*in_data).local_seq_matches[j];
 	}
+	printf("CHECK 3\n");
 	(*out_data).local_pat_matches += (*in_data).local_pat_matches;
 }
 /*
