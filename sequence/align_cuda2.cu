@@ -127,14 +127,14 @@ void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatyp
 	ReductionData *out_data = (ReductionData *)out;
 
 	for (int j = 0; j < (*out_data).pat_number; j++) {
-		(*out_data).local_pat_found[j] += (*in_data).local_pat_found[j];
+		(*out_data).pat_found[j] += (*in_data).pat_found[j];
 	}
 	
 	for (int j = 0; j < (*out_data).seq_length; j++) {
-		(*out_data).local_seq_matches[j] += (*in_data).local_seq_matches[j];
+		(*out_data).seq_matches[j] += (*in_data).seq_matches[j];
 	}
 	
-	(*out_data).local_pat_matches += (*in_data).local_pat_matches;
+	(*out_data).pat_matches += (*in_data).pat_matches;
 }
 /*
  *
