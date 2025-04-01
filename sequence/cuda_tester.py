@@ -5,7 +5,7 @@ import concurrent.futures
 
 def run_executable(executable, input_data, num_processes):
     process = subprocess.run(
-        ["mpirun", "-np", str(num_processes), executable] + input_data,
+        ["mpirun", "-np", num_processes, executable] + input_data,
         text=True,
         capture_output=True
     )
@@ -27,14 +27,14 @@ def measure_execution_time(executable: str, input_data: list, n: int):
 
 
     open("cuda_execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
-    seq_time= run_executable("./align_m_c", input_data, ["1"])
+    seq_time= run_executable("./align_m_c", input_data, "1")
     open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     threads= [2, 4]
     all_times= []
     for cores in threads:
         execution_times = []
         with concurrent.futures.ThreadPoolExecutor(1) as executor:
-            futures = [executor.submit(run_executable, executable, input_data, [str(cores)]) for _ in range(n)]
+            futures = [executor.submit(run_executable, executable, input_data, str(cores)) for _ in range(n)]
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 execution_time = future.result()
                 if execution_time is not None:
