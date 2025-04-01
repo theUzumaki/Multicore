@@ -5,7 +5,7 @@ import concurrent.futures
 
 def run_executable(executable, input_data, num_processes):
     process = subprocess.run(
-        ["mpirun", "-np", num_processes, executable] + input_data,
+        ["mpirun", "-np", num_processes, executable, input_data],
         text=True,
         capture_output=True
     )
