@@ -9,7 +9,7 @@ def run_executable(executable, input_data, num_processes):
         text=True,
         capture_output=True
     )
-    print("mpirun", "-np", num_processes, executable, input_data)
+    print("mpirun", "-np", num_processes, executable, input_data, "--allow-run-as-root")
     print("output-> "+str(process.stdout)+" error-> "+str(process.stderr))
     output_lines = process.stdout.strip().split("\n")
     error_lines = process.stderr.strip().split("\n")
