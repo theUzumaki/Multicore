@@ -9,6 +9,8 @@ def run_executable(executable, input_data, num_processes):
         text=True,
         capture_output=True
     )
+    print("mpirun", "-np", num_processes, executable, input_data)
+    print("output-> "+str(process.stdout)+" error-> "+str(process.stderr))
     output_lines = process.stdout.strip().split("\n")
     error_lines = process.stderr.strip().split("\n")
     print("output-> "+str(output_lines)+" error-> "+str(error_lines))
