@@ -122,10 +122,10 @@ void build_custom_struct(unsigned long *pat_found, int *seq_matches, int pat_mat
 }
 
 void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype) {
-
+printf("CHECK INSIDE 1\n");
 	ReductionData *in_data = (ReductionData *)in;
 	ReductionData *out_data = (ReductionData *)out;
-
+printf("CHECK INSIDE 2\n");
 	for (int j = 0; j < (*out_data).pat_number; j++) {
 		(*out_data).pat_found[j] += (*in_data).pat_found[j];
 	}
