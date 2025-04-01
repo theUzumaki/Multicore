@@ -122,10 +122,10 @@ void build_custom_struct(unsigned long *pat_found, int *seq_matches, int pat_mat
 }
 
 void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatype) {
-printf("CHECK INSIDE 1\n");
+
 	ReductionData *in_data = (ReductionData *)in;
 	ReductionData *out_data = (ReductionData *)out;
-printf("CHECK INSIDE 2\n");
+
 	for (int j = 0; j < (*out_data).pat_number; j++) {
 		(*out_data).pat_found[j] += (*in_data).pat_found[j];
 	}
@@ -525,27 +525,20 @@ int main(int argc, char *argv[]) {
 	local_data.pat_matches = local_pat_matches;
 	local_data.pat_number = pat_number;
 	local_data.seq_length = seq_length;
-printf("CHECK 1\n");
+
 	MPI_Datatype reduction_type;
 	build_custom_struct(local_data.pat_found, local_data.seq_matches, local_data.pat_matches, local_data.pat_number, local_data.seq_length, &reduction_type);
-printf("CHECK 2\n");
+
 	MPI_Op custom_op;
     MPI_Op_create(&custom_reduce_function, 1, &custom_op);
-printf("CHECK 3\n");
-	global_data.pat_found = pat_found;
-	global_data.seq_matches = seq_matches;
-	global_data.pat_matches = pat_matches;
+	
+	global_data.pat_found = (unsigned long *)malloc(sizeof(unsigned long) * pat_number);
+	global_data.seq_matches = (int *)malloc(sizeof(int) * seq_length);
+	global_data.pat_matches = 0;
 	global_data.pat_number = pat_number;
 	global_data.seq_length = seq_length;
-printf("CHECK 4, addresses: %p, %p\n", local_data.pat_found, global_data.pat_found);
-printf("CHECK 4.1, addresses: %p, %p\n", local_data.seq_matches, global_data.seq_matches);
-printf("CHECK 4.2, addresses: %p, %p\n", &local_data.pat_matches, &global_data.pat_matches);
-printf("CHECK 4.3, addresses: %p, %p\n", &local_data.pat_number, &global_data.pat_number);
-printf("CHECK 4.4, addresses: %p, %p\n", &local_data.seq_length, &global_data.seq_length);
-printf("CHECK 4.5, addresses: %p, %p\n", &local_data, &global_data);
-printf("CHECK 4.6, addresses: %p, %p\n", &reduction_type, &custom_op);
+
     MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
-printf("CHECK 5\n");
 
 	MPI_Op_free(&custom_op);
     MPI_Type_free(&reduction_type);
