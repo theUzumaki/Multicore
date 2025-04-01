@@ -91,6 +91,7 @@ void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_le
 	}
 }
 
+/*
 struct ReductionData {
 	unsigned long *pat_found;
 	int *seq_matches;
@@ -136,6 +137,7 @@ void custom_reduce_function(void *in, void *out, int *len, MPI_Datatype *datatyp
 	
 	(*out_data).pat_matches += (*in_data).pat_matches;
 }
+*/
 /*
  *
  * STOP HERE: DO NOT CHANGE THE CODE BELOW THIS POINT
@@ -272,7 +274,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	unsigned long seed = atol( argv[14] );
-	int fixed_size = atoi( argv[15] );
 
 #ifdef DEBUG
 	/* DEBUG: Print arguments */
@@ -468,8 +469,6 @@ int main(int argc, char *argv[]) {
 	/* 5. Subdivide work among MPI processes */
 	int size;
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	size= fixed_size;
-	printf("Number of processes: %d\n", size);
 	int chunk_size = (pat_number + size - 1) / size;
 	int start_pat = rank * chunk_size;
 	int end_pat = (rank + 1) * chunk_size;
@@ -517,36 +516,10 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
-	ReductionData local_data;
-	ReductionData global_data;
-	
-	local_data.pat_found = local_pat_found;
-	local_data.seq_matches = local_seq_matches;
-	local_data.pat_matches = local_pat_matches;
-	local_data.pat_number = pat_number;
-	local_data.seq_length = seq_length;
-
-	MPI_Datatype reduction_type;
-	build_custom_struct(local_data.pat_found, local_data.seq_matches, local_data.pat_matches, local_data.pat_number, local_data.seq_length, &reduction_type);
-
-	MPI_Op custom_op;
-    MPI_Op_create(&custom_reduce_function, 1, &custom_op);
-	
-	global_data.pat_found = (unsigned long *)malloc(sizeof(unsigned long) * pat_number);
-	global_data.seq_matches = (int *)malloc(sizeof(int) * seq_length);
-	global_data.pat_matches = 0;
-	global_data.pat_number = pat_number;
-	global_data.seq_length = seq_length;
-
-    MPI_Reduce(&local_data, &global_data, 1, reduction_type, custom_op, 0, MPI_COMM_WORLD);
-
-	MPI_Op_free(&custom_op);
-    MPI_Type_free(&reduction_type);
-/*
 	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-*/
+
 	/* 11. Free device memory */
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_found) );
