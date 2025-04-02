@@ -4,7 +4,7 @@ import time
 import concurrent.futures
 
 def run_executable(executable, input_data, num_processes):
-    command = ["mpiexec", "--allow-run-as-root", "-n", num_processes, executable, input_data]
+    command = ["mpiexec", "--allow-run-as-root", "-n", num_processes, executable] + input_data.split()
     print("command-> "+str(command))
     process = subprocess.run(
         command,
