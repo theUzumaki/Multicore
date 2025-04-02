@@ -40,7 +40,11 @@ def measure_execution_time(executable: str, input_data: list, n: int):
             print("Num of futures: ", len(futures))
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 print(f"Future {i+1} completed")
-                execution_time = future.result()
+                try:
+                    execution_time = future.result()
+                except Exception as e:
+                    print(f"An error occurred while processing a future: {e}")
+                    execution_time = Noneexecution_time = future.result()
                 if execution_time is not None:
                     print("inside")
                     execution_times.append(execution_time)
