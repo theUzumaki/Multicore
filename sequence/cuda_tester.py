@@ -39,8 +39,10 @@ def measure_execution_time(executable: str, input_data: list, n: int):
             futures = [executor.submit(run_executable, executable, input_data, str(cores)) for _ in range(n)]
             print("Num of futures: ", len(futures))
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
+                print(f"Future {i+1} completed")
                 execution_time = future.result()
                 if execution_time is not None:
+                    print("inside")
                     execution_times.append(execution_time)
                     print(f"Run {i+1}: {execution_time:.6f} seconds")
 
