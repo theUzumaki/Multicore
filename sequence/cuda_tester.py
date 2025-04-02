@@ -4,12 +4,13 @@ import time
 import concurrent.futures
 
 def run_executable(executable, input_data, num_processes):
+    command = ["mpiexec", "--allow-run-as-root", "-n", num_processes, executable, input_data]
+    print("command-> "+str(command))
     process = subprocess.run(
-        ["mpiexec", "--allow-run-as-root", "-n", num_processes, executable, input_data],
+        command,
         text=True,
         capture_output=True
     )
-    print("mpiexec", "--allow-run-as-root", "-n", num_processes, executable, input_data)
     print("output-> "+str(process.stdout)+" error-> "+str(process.stderr))
     output_lines = process.stdout.strip().split("\n")
     error_lines = process.stderr.strip().split("\n")
