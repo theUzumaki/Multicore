@@ -39,7 +39,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
             futures = [executor.submit(run_executable, executable, input_data, str(cores)) for _ in range(n)]
             print("Num of futures: ", len(futures))
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
-                print(f"Future {i+1} completed")
+                print(f"Future {i+1} completed with {future._exception}")
                 try:
                     execution_time = future.result()
                 except Exception as e:
