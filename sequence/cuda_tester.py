@@ -12,6 +12,7 @@ def run_executable(executable, input_data, num_processes):
     )
     
     output_lines = process.stdout.strip().split("\n")
+    print("Output lines: ", output_lines)
     if len(output_lines) >= 1:
         first_line_words = output_lines[0].split()
         if len(first_line_words) >= 2:
