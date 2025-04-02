@@ -5,16 +5,13 @@ import concurrent.futures
 
 def run_executable(executable, input_data, num_processes):
     command = ["mpiexec", "--allow-run-as-root", "-n", num_processes, executable] + input_data.split()
-    print("command-> "+str(command))
     process = subprocess.run(
         command,
         text=True,
         capture_output=True
     )
-    print("output-> "+str(process.stdout)+" error-> "+str(process.stderr))
+    
     output_lines = process.stdout.strip().split("\n")
-    error_lines = process.stderr.strip().split("\n")
-    print("output-> "+str(output_lines)+" error-> "+str(error_lines))
     if len(output_lines) >= 1:
         first_line_words = output_lines[0].split()
         if len(first_line_words) >= 2:

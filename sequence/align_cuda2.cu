@@ -565,9 +565,10 @@ int main(int argc, char *argv[]) {
  */
 
 	/* 8. Stop global timer */
-        CUDA_CHECK_FUNCTION( cudaDeviceSynchronize() );
+    CUDA_CHECK_FUNCTION( cudaDeviceSynchronize() );
 	MPI_Barrier( MPI_COMM_WORLD );
 	ttotal = cp_Wtime() - ttotal;
+	MPI_Finalize();
 
 	/* 9. Output for leaderboard */
 	printf("\n");
