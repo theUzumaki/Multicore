@@ -34,7 +34,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     all_times= []
     for cores in threads:
         execution_times = []
-        print(f"Running with {cores} cores\n\n")
+        print(f"Running with {cores} cores {n} times\n\n")
         with concurrent.futures.ThreadPoolExecutor(1) as executor:
             futures = [executor.submit(run_executable, executable, input_data, str(cores)) for _ in range(n)]
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
