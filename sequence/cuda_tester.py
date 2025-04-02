@@ -5,11 +5,11 @@ import concurrent.futures
 
 def run_executable(executable, input_data, num_processes):
     process = subprocess.run(
-        ["mpirun", "-np", num_processes, executable, input_data, "--allow-run-as-root"],
+        ["mpiexec", "--allow-run-as-root", "-np", num_processes, executable, input_data],
         text=True,
         capture_output=True
     )
-    print("mpirun", "-np", num_processes, executable, input_data, "--allow-run-as-root")
+    print("mpiexec", "--allow-run-as-root", "-np", num_processes, executable, input_data)
     print("output-> "+str(process.stdout)+" error-> "+str(process.stderr))
     output_lines = process.stdout.strip().split("\n")
     error_lines = process.stderr.strip().split("\n")
