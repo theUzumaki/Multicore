@@ -570,17 +570,19 @@ int main(int argc, char *argv[]) {
 	ttotal = cp_Wtime() - ttotal;
 	MPI_Finalize();
 
-	/* 9. Output for leaderboard */
-	printf("\n");
-	/* 9.1. Total computation time */
-	printf("Time: %lf\n", ttotal );
+	if (rank == 0) {
+		/* 9. Output for leaderboard */
+		printf("\n");
+		/* 9.1. Total computation time */
+		printf("Time: %lf\n", ttotal );
 
-	/* 9.2. Results: Statistics */
-	printf("Result: %d, %lu, %lu\n\n", 
-			pat_matches,
-			checksum_found,
-			checksum_matches );
-		
+		/* 9.2. Results: Statistics */
+		printf("Result: %d, %lu, %lu\n\n", 
+				pat_matches,
+				checksum_found,
+				checksum_matches );	
+	}
+
 	/* 10. Free resources */	
 	int i;
 	for( i=0; i<pat_number; i++ ) free( pattern[i] );
