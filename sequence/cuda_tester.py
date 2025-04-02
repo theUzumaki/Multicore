@@ -33,7 +33,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     seq_time= run_executable("./align_m_c", input_data, "1")
     open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     print("PARALLEL ONE PROCESS TIME: " + str(seq_time) + "\n\n")
-    threads= [2, 4]
+    threads= [2]
     all_times= []
     for cores in threads:
         execution_times = []
