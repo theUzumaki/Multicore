@@ -45,7 +45,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
         speedup= seq_time / average_time
         efficiency= (speedup / cores) * 100
-        all_times.append(input_data + execution_times)
+        all_times.append(input_data + str(execution_times))
         line= f"{average_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
         with open("cuda_execution_times.txt", "a") as f:
             f.write(line)
