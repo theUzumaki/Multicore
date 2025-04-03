@@ -4,14 +4,16 @@ import time
 import concurrent.futures
 
 def run_seq_executable(executable: str, input_data: str):
+    command = [executable] + input_data.split()
+    print("Command: ", " ".join(command))
     process = subprocess.run(
-        [executable, input_data],
+        command,
         text=True,
         capture_output=True
     )
 
-    output_lines= process.stdout.strip().split("\n")
-    print(output_lines)
+    output_lines = process.stdout.strip().split("\n")
+    print("Output lines: ", output_lines)
     if len(output_lines) >= 1:
         first_line_words = output_lines[0].split()
         if len(first_line_words) >= 2:
