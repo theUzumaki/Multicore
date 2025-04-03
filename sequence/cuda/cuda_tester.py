@@ -3,14 +3,20 @@ import subprocess
 import time
 import concurrent.futures
 
-def run_seq_executable(executable: str, input_data: str, num_processes: str):
+def run_seq_executable(executable: str, input_data: str):
     process = subprocess.run(
         [executable, input_data],
         text=True,
         capture_output=True
     )
 
-    
+    output_lines= process.stdout.strip().split("\n")
+    print(output_lines)
+    if len(output_lines) >= 1:
+        first_line_words = output_lines[0].split()
+        if len(first_line_words) >= 2:
+            return float(first_line_words[1])
+    return None
 
 def run_executable(executable: str, input_data: str, num_processes: str):
     # Create the job.slurm file dynamically based on the input

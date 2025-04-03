@@ -260,3 +260,44 @@ PARALLEL ONE PROCESS TIME: 0.083529
 0.061737 seconds	1.352986	33.824639%
 0.054131 seconds	1.543083	19.288535%
 0.054002 seconds	1.546773	9.667332%
+
+
+6 --------
+Basic run with cluster
+
+300 0.1 0.3 0.35 100 5 5 300 150 50 150 80 M 609823
+
+
+
+6 --------
+Basic run with cluster
+
+300 0.1 0.3 0.35 100 5 5 300 150 50 150 80 M 609823
+
+
+
+6 --------
+Basic run with cluster
+
+300 0.1 0.3 0.35 100 5 5 300 150 50 150 80 M 609823
+
+SEQUENTIAL TIME: None
+./align_m_c
+
+
+6 --------
+Basic run with cluster
+
+300 0.1 0.3 0.35 100 5 5 300 150 50 150 80 M 609823
+
+SEQUENTIAL TIME: None
+./align_m_c
+
+
+6 --------
+Basic run with cluster
+
+300 0.1 0.3 0.35 100 5 5 300 150 50 150 80 M 609823
+
+SEQUENTIAL TIME: None
+./align_m_c
