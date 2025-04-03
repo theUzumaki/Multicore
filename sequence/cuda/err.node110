@@ -1,9 +1,0 @@
---------------------------------------------------------------------------
-prterun was unable to launch the specified application as it lacked
-permissions to execute an executable:
-
-   Executable: ./align_m_c
-   Node: node110
-
-while attempting to start process rank 0.
---------------------------------------------------------------------------
