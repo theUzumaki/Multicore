@@ -1,5 +1,4 @@
-NUM OF PROCS: 1
 
-Time: 0.000731
-Result: 336, 38006, 43467
+Time: 0.000116
+Result: 0, 0, 63364
 

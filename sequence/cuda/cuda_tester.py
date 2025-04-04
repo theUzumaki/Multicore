@@ -5,7 +5,6 @@ import concurrent.futures
 
 def run_seq_executable(executable: str, input_data: str):
     command = [executable] + input_data.split()
-    print("Command: ", " ".join(command))
     process = subprocess.run(
         command,
         text=True,
@@ -13,8 +12,11 @@ def run_seq_executable(executable: str, input_data: str):
     )
 
     output_lines = process.stdout.strip().split("\n")
-    print("Output lines: ", output_lines)
+    print("OUTPUT: ", output_lines)
     if len(output_lines) >= 1:
+#        print(output_lines[1].split())
+        if output_lines[1].split()[1] == "0,":
+            return None
         first_line_words = output_lines[0].split()
         if len(first_line_words) >= 2:
             return float(first_line_words[1])
@@ -30,7 +32,7 @@ def run_executable(executable: str, input_data: str, num_processes: str):
         slurm_file.write("#SBATCH --ntasks=" + num_processes + "\n")
         slurm_file.write("#SBATCH --cpus-per-task=1\n")
         slurm_file.write("\n")
-        slurm_file.write(f"srun {executable} {' '.join(input_data.split())}\n")
+        slurm_file.write(f"mpirun {executable} {' '.join(input_data.split())}\n")
 
     # Submit the job using sbatch
     process = subprocess.run(
@@ -44,8 +46,10 @@ def run_executable(executable: str, input_data: str, num_processes: str):
     print(f"Submitted job with ID: {job_id}")
 
     # Poll for job completion and read the output file
+    counter= 0
     while True:
-        time.sleep(5)  # Wait for 5 seconds before checking again
+        time.sleep(1)  # Wait for 5 seconds before checking again
+        counter+= 1
         check_process = subprocess.run(
             ["squeue", "--job", job_id],
             text=True,
@@ -53,14 +57,18 @@ def run_executable(executable: str, input_data: str, num_processes: str):
         )
         if job_id not in check_process.stdout:
             break  # Job is no longer in the queue
+        if counter == 30:
+            counter= 0
+            print("...waiting...")
 
     # Read the output from the job_output.txt file
     with open("job_output.txt", "r") as output_file:
         output_lines = output_file.read().strip().split("\n")
-        print("Output lines: ", output_lines)
-        print("Error lines: ", process.stderr.strip().split("\n"))
-        print("Return code: ", process.returncode)
+#        print("OUTPUT: ", output_lines)
         if len(output_lines) >= 1:
+#            print(output_lines[1].split())
+            if output_lines[1].split()[1] == "0,":
+                return None
             first_line_words = output_lines[0].split()
             if len(first_line_words) >= 2:
                 return float(first_line_words[1])
@@ -81,7 +89,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     seq_time= run_executable(executable, input_data, "1")
     open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     print("PARALLEL ONE PROCESS TIME: " + str(seq_time) + "\n\n")
-    threads= [2]
+    threads= [2, 4, 8, 16]
     all_times= []
     for cores in threads:
         execution_times = []
@@ -97,7 +105,9 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                 if execution_time is not None:
                     execution_times.append(execution_time)
                     print(f"Run {i+1}: {execution_time:.6f} seconds")
-
+                else:
+                    print("Error in solution, skipping cores")
+                    break
         average_time = sum(execution_times) / n
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
         speedup= seq_time / average_time
