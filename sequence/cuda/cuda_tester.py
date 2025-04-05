@@ -84,10 +84,38 @@ def measure_execution_time(executable: str, input_data: list, n: int):
 
     input_data = " ".join(input_data)
     open("cuda_execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
-    seq_time= run_seq_executable("./align_seq", input_data)
+    with concurrent.futures.ThreadPoolExecutor(4) as executor:
+        futures = [executor.submit(run_seq_executable, "./align_seq", input_data) for _ in range(n)]
+        for i, future in enumerate(concurrent.futures.as_completed(futures)):
+            try:
+                execution_time = future.result()
+            except Exception as e:
+                print(f"An error occurred while processing a future: {e}")
+                execution_time = None
+            if execution_time is not None:
+                print(f"Run {i+1}: {execution_time:.6f} seconds")
+                average_time = sum(execution_times) / n
+        print(f"Average Execution Time: {average_time:.6f} seconds\n")
+        all_times.append(input_data + str(execution_times))
+        line= f"{average_time:.6f} seconds\n"
+    seq_time= average_time
     open("cuda_execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(seq_time) + f"\n{executable}\n")
     print("SEQUENTIAL TIME: " + str(seq_time) + "\n\n")
-    seq_time= run_executable(executable, input_data, "1")
+    with concurrent.futures.ThreadPoolExecutor(4) as executor:
+        futures = [executor.submit(run_executable, executable, input_data, "1") for _ in range(n)]
+        for i, future in enumerate(concurrent.futures.as_completed(futures)):
+            try:
+                execution_time = future.result()
+            except Exception as e:
+                print(f"An error occurred while processing a future: {e}")
+                execution_time = None
+            if execution_time is not None:
+                print(f"Run {i+1}: {execution_time:.6f} seconds")
+                average_time = sum(execution_times) / n
+        print(f"Average Execution Time: {average_time:.6f} seconds\n")
+        all_times.append(input_data + str(execution_times))
+        line= f"{average_time:.6f} seconds\n"
+    seq_time= average_time
     open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     print("PARALLEL ONE PROCESS TIME: " + str(seq_time) + "\n\n")
     threads= [2, 4, 8]
