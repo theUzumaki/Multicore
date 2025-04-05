@@ -31,6 +31,7 @@ def run_executable(executable: str, input_data: str, num_processes: str):
         slurm_file.write("#SBATCH --error=job_error.txt\n")
         slurm_file.write("#SBATCH --ntasks=" + num_processes + "\n")
         slurm_file.write("#SBATCH --cpus-per-task=1\n")
+        slurm_file.write("#SBATCH --gres=gpu:1\n")
         slurm_file.write("\n")
         slurm_file.write(f"mpirun {executable} {' '.join(input_data.split())}\n")
 
@@ -64,7 +65,7 @@ def run_executable(executable: str, input_data: str, num_processes: str):
     # Read the output from the job_output.txt file
     with open("job_output.txt", "r") as output_file:
         output_lines = output_file.read().strip().split("\n")
-#        print("OUTPUT: ", output_lines)
+        print("OUTPUT: ", output_lines)
         if len(output_lines) >= 1:
 #            print(output_lines[1].split())
             if output_lines[1].split()[1] == "0,":
@@ -89,12 +90,12 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     seq_time= run_executable(executable, input_data, "1")
     open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     print("PARALLEL ONE PROCESS TIME: " + str(seq_time) + "\n\n")
-    threads= [2, 4, 8, 16]
+    threads= [2, 4, 8]
     all_times= []
     for cores in threads:
         execution_times = []
         print(f"Running with {cores} cores {n} times\n\n")
-        with concurrent.futures.ThreadPoolExecutor(1) as executor:
+        with concurrent.futures.ThreadPoolExecutor(4) as executor:
             futures = [executor.submit(run_executable, executable, input_data, str(cores)) for _ in range(n)]
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 try:
@@ -121,7 +122,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
 
 if __name__ == "__main__":
     executable_path = "./align_m_c"  # Change this to your executable's path
-    runs = 20  # Number of times to run
+    runs = 25  # Number of times to run
     header= "\n\n6 --------\nBasic run with cluster"
     open("cuda_execution_times.txt", "a").write(header)
     open("all_times.txt", "a").write(header)
