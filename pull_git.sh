@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Your GitHub repository URL (replace with your actual URL)
-REPO_URL="https://github.com/theUzumaki/WASA.git"
+REPO_URL="github.com/theUzumaki/Multicore.git"
 
 # GitHub credentials
 GITHUB_USERNAME="theUzumaki"

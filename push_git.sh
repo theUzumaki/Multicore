@@ -4,9 +4,9 @@
 git add .
 
 # Commit with a message
-git commit -m "General update"
+git commit -m "openMP atomic pat_found"
 
-REPO_URL="https://github.com/theUzumaki/WASA.git"
+REPO_URL="github.com/theUzumaki/Multicore.git"
 
 # GitHub credentials
 GITHUB_USERNAME="theUzumaki"
