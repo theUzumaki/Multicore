@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "colab update"
+git commit -m "General update"
 
 # Push changes
 git push
