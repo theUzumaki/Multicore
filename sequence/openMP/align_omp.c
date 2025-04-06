@@ -385,12 +385,14 @@ int main(int argc, char *argv[]) {
 
 			/* 5.1.2. Check if the loop ended with a match */
 			if ( lind == pat_length[pat] ) {
-                                #pragma omp critical
-                                {
+				#pragma omp atomic
 				pat_matches++;
+				#pragma omp atomic write
 				pat_found[pat] = start + 1;
+				#pragma omp critical
+				{
 				increment_matches( pat, pat_found, pat_length, seq_matches );
-                                }
+                }
 				break;
 			}
 		}
