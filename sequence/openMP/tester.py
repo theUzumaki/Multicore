@@ -10,6 +10,7 @@ def run_executable(executable, input_data):
         capture_output=True
     )
     output_lines = process.stdout.strip().split("\n")
+    print(output_lines)
     if len(output_lines) >= 1:
         first_line_words = output_lines[0].split()
         if len(first_line_words) >= 2:
@@ -36,7 +37,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     seq_time= average_time
     print(f"Average Sequential Execution Time: {average_time:.6f} seconds")
     line= f"{average_time:.6f} seconds\n"
-    open("execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(average_time) + f"\n{executable}\n")
+    open("execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(average_time) + f"\n{executable}\n\n")
     threads= [2, 4, 8, 16]
     all_times= []
     for cores in threads:
@@ -50,7 +51,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                     print(f"Run {i+1}: {execution_time:.6f} seconds")
         all_times.append(input_data + execution_times)
         average_time = sum(execution_times) / n
-        print(f"Average Execution Time: {average_time:.6f} seconds")
+        print(f"Average Execution Time: {average_time:.6f} seconds\n\n")
         speedup= seq_time / average_time
         efficiency= (speedup / cores) * 100
         line= f"{average_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
