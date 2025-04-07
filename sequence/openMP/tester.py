@@ -35,20 +35,23 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                 print(f"Run {i+1}: {execution_time:.6f} seconds")
     average_time = sum(execution_times) / n
     seq_time= average_time
-    print(f"Average Sequential Execution Time: {average_time:.6f} seconds")
+    print(f"Average Sequential Execution Time: {average_time:.6f} seconds\n\n")
     line= f"{average_time:.6f} seconds\n"
     open("execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(average_time) + f"\n{executable}\n\n")
     threads= [2, 4, 8, 16]
     all_times= []
+    counter = 0
     for cores in threads:
         execution_times = []
         with concurrent.futures.ThreadPoolExecutor(1) as executor:
             futures = [executor.submit(run_executable, executable, input_data + [str(cores)]) for _ in range(n)]
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
                 execution_time = future.result()
+                counter += 1
+                percentage= counter
                 if execution_time is not None:
                     execution_times.append(execution_time)
-                    print(f"Run {i+1}: {execution_time:.6f} seconds")
+                    print(f"Run {i+1}: {execution_time:.6f} seconds\t --> {percentage}% COMPLETED")
         all_times.append(input_data + execution_times)
         average_time = sum(execution_times) / n
         print(f"Average Execution Time: {average_time:.6f} seconds\n\n")
