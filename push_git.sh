@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "openMP two atomic one critical"
+git commit -m "openMP three reduction"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
