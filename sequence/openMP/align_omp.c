@@ -371,7 +371,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Search for each pattern */
 	unsigned long start;
 	int pat;
-	#pragma omp parallel for private(start, lind) schedule(static) reduction(+:pat_matches) reduction(+:pat_found[:pat_number]) reduction(+:seq_matches[:seq_length])
+	#pragma omp parallel for private(start, lind) reduction(+:pat_matches) reduction(+:pat_found[:pat_number]) reduction(+:seq_matches[:seq_length])
 	for( pat=0; pat < pat_number; pat++ ) {
 
 		/* 5.1. For each possible starting position */

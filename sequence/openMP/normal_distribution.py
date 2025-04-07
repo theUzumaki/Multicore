@@ -45,7 +45,7 @@ def plot_normal_distribution(mean, std_dev, test):
     plt.close()  # Close the figure to free memory
 
 # Main execution
-filename = '/home/iamt/Work/Multicore/sequence/all_times.txt'  # Change this to your actual filename
+filename = '/home/iamt/Work/Multicore/sequence/openMP/all_times.txt'  # Change this to your actual filename
 for i in range(0, 3):
     test= i+1
     mean, std_dev = read_data_from_file(filename)
