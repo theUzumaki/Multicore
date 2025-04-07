@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "openMP three reduction"
+git commit -m "openMP three reduction schedule static"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
