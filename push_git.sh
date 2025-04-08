@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "openMP three reduction FINAL"
+git commit -m "back to work on cuda"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 

@@ -469,6 +469,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Subdivide work among MPI processes */
 	int size;
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	print("Rank %d: Number of processes: %d\n", rank, size);
 	int chunk_size = (pat_number + size - 1) / size;
 	int start_pat = rank * chunk_size;
 	int end_pat = (rank + 1) * chunk_size;
