@@ -86,7 +86,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     execution_times= []
     open("cuda_execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
     with concurrent.futures.ThreadPoolExecutor(1) as executor:
-        futures = [executor.submit(run_seq_executable, "./align_seq", input_data) for _ in range(n)]
+        futures = [executor.submit(run_seq_executable, "./align_seq", input_data) for _ in range(5)]
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             try:
                 execution_time = future.result()
@@ -96,7 +96,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
             if execution_time is not None:
                 execution_times.append(execution_time)
                 print(f"Run {i+1}: {execution_time:.6f} seconds")
-                average_time = sum(execution_times) / n
+                average_time = sum(execution_times) / 5
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
         line= f"{average_time:.6f} seconds\n"
     seq_time= average_time
@@ -104,6 +104,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     print("SEQUENTIAL TIME: " + str(seq_time) + "\n\n")
     execution_times= []
     counter= 0
+    total= 21
     with concurrent.futures.ThreadPoolExecutor(1) as executor:
         futures = [executor.submit(run_executable, executable, input_data, "1") for _ in range(n)]
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
@@ -114,7 +115,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                 print(f"An error occurred while processing a future: {e}")
                 execution_time = None
             if execution_time is not None:
-                completion= counter
+                completion= counter / total * 100
                 print(f"Run {i+1}: {execution_time:.6f} seconds  \t--> {completion}% COMPLETED")
                 execution_times.append(execution_time)
                 average_time = sum(execution_times) / n
@@ -139,7 +140,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                     execution_time = Noneexecution_time = future.result()
                 if execution_time is not None:
                     execution_times.append(execution_time)
-                    completion= counter
+                    completion= counter / total * 100
                     print(f"Run {i+1}: {execution_time:.6f} seconds  \t--> {completion}% COMPLETED")
                 else:
                     print("Error in solution, skipping cores")
@@ -157,7 +158,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
 
 if __name__ == "__main__":
     executable_path = "./align_m_c"  # Change this to your executable's path
-    runs = 25  # Number of times to run
+    runs = 7  # Number of times to run
     header= "\n\n6 --------\nBasic run with cluster"
     open("cuda_execution_times.txt", "a").write(header)
     open("all_times.txt", "a").write(header)
