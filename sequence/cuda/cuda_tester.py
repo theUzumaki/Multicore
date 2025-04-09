@@ -57,9 +57,9 @@ def run_executable(executable: str, input_data: str, num_processes: str):
             capture_output=True
         )
         if job_id not in check_process.stdout:
+            print(f"completed after {counter}")
             break  # Job is no longer in the queue
-        if counter == 30:
-            counter= 0
+        if counter % 10 == 0:
             print("...waiting...")
 
     # Read the output from the job_output.txt file
@@ -83,8 +83,9 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     print()
 
     input_data = " ".join(input_data)
+    execution_times= []
     open("cuda_execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
-    with concurrent.futures.ThreadPoolExecutor(4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(1) as executor:
         futures = [executor.submit(run_seq_executable, "./align_seq", input_data) for _ in range(n)]
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             try:
@@ -93,27 +94,31 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                 print(f"An error occurred while processing a future: {e}")
                 execution_time = None
             if execution_time is not None:
+                execution_times.append(execution_time)
                 print(f"Run {i+1}: {execution_time:.6f} seconds")
                 average_time = sum(execution_times) / n
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
-        all_times.append(input_data + str(execution_times))
         line= f"{average_time:.6f} seconds\n"
     seq_time= average_time
     open("cuda_execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(seq_time) + f"\n{executable}\n")
     print("SEQUENTIAL TIME: " + str(seq_time) + "\n\n")
-    with concurrent.futures.ThreadPoolExecutor(4) as executor:
+    execution_times= []
+    counter= 0
+    with concurrent.futures.ThreadPoolExecutor(1) as executor:
         futures = [executor.submit(run_executable, executable, input_data, "1") for _ in range(n)]
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
+            counter += 1
             try:
                 execution_time = future.result()
             except Exception as e:
                 print(f"An error occurred while processing a future: {e}")
                 execution_time = None
             if execution_time is not None:
-                print(f"Run {i+1}: {execution_time:.6f} seconds")
+                completion= counter
+                print(f"Run {i+1}: {execution_time:.6f} seconds  \t--> {completion}% COMPLETED")
+                execution_times.append(execution_time)
                 average_time = sum(execution_times) / n
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
-        all_times.append(input_data + str(execution_times))
         line= f"{average_time:.6f} seconds\n"
     seq_time= average_time
     open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
@@ -123,9 +128,10 @@ def measure_execution_time(executable: str, input_data: list, n: int):
     for cores in threads:
         execution_times = []
         print(f"Running with {cores} cores {n} times\n\n")
-        with concurrent.futures.ThreadPoolExecutor(4) as executor:
+        with concurrent.futures.ThreadPoolExecutor(1) as executor:
             futures = [executor.submit(run_executable, executable, input_data, str(cores)) for _ in range(n)]
             for i, future in enumerate(concurrent.futures.as_completed(futures)):
+                counter+= 1
                 try:
                     execution_time = future.result()
                 except Exception as e:
@@ -133,7 +139,8 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                     execution_time = Noneexecution_time = future.result()
                 if execution_time is not None:
                     execution_times.append(execution_time)
-                    print(f"Run {i+1}: {execution_time:.6f} seconds")
+                    completion= counter
+                    print(f"Run {i+1}: {execution_time:.6f} seconds  \t--> {completion}% COMPLETED")
                 else:
                     print("Error in solution, skipping cores")
                     break
