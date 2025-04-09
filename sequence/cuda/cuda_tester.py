@@ -1,6 +1,7 @@
 
 import subprocess
 import time
+import statistics
 import concurrent.futures
 
 def run_seq_executable(executable: str, input_data: str):
@@ -96,7 +97,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
             if execution_time is not None:
                 execution_times.append(execution_time)
                 print(f"Run {i+1}: {execution_time:.6f} seconds")
-                average_time = sum(execution_times) / 5
+        average_time = sum(execution_times) / 5
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
         line= f"{average_time:.6f} seconds\n"
     seq_time= average_time
@@ -118,10 +119,12 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                 completion= counter / total * 100
                 print(f"Run {i+1}: {execution_time:.6f} seconds  \t--> {completion}% COMPLETED")
                 execution_times.append(execution_time)
-                average_time = sum(execution_times) / n
+        average_time = sum(execution_times) / n
+        median_time = statistics.median(execution_times)
+        print(f"Median Execution Time: {median_time:.6f} seconds")
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
-        line= f"{average_time:.6f} seconds\n"
-    seq_time= average_time
+        line= f"{median_time:.6f} seconds\n"
+    seq_time= median_time
     open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     print("PARALLEL ONE PROCESS TIME: " + str(seq_time) + "\n\n")
     threads= [2, 4, 8]
@@ -145,12 +148,14 @@ def measure_execution_time(executable: str, input_data: list, n: int):
                 else:
                     print("Error in solution, skipping cores")
                     break
+        median_time = statistics.median(execution_times)
+        print(f"Median Execution Time: {median_time:.6f} seconds")
         average_time = sum(execution_times) / n
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
-        speedup= seq_time / average_time
+        speedup= seq_time / median_time
         efficiency= (speedup / cores) * 100
         all_times.append(input_data + str(execution_times))
-        line= f"{average_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
+        line= f"{median_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
         with open("cuda_execution_times.txt", "a") as f:
             f.write(line)
     open("all_times.txt", "a").write("\n")
@@ -159,7 +164,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
 if __name__ == "__main__":
     executable_path = "./align_m_c"  # Change this to your executable's path
     runs = 7  # Number of times to run
-    header= "\n\n6 --------\nBasic run with cluster"
+    header= "\n\n6 --------\nBasic run with cluster and median"
     open("cuda_execution_times.txt", "a").write(header)
     open("all_times.txt", "a").write(header)
     with open("inputs.txt", 'r') as file:
