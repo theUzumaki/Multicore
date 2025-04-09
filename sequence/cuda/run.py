@@ -40,6 +40,7 @@ while True:
     time.sleep(1)
     counter+= 1
     if counter % 10 == 0:
+        counter= 0
         print("Waiting for job to complete...")
 
 # Ensure output and error files exist

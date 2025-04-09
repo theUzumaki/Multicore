@@ -1,7 +1,25 @@
-CUDA Error in line: 515, misaligned address
-CUDA Error in line: 516, misaligned address
-CUDA Error in line: 517, misaligned address
+[node122:348548:0:348548] Caught signal 11 (Segmentation fault: invalid permissions for mapped object at address 0x779355261a90)
+==== backtrace (tid: 348548) ====
+ 0  /lib/libucs.so.0(ucs_handle_error+0x2ec) [0x77939cf5729c]
+ 1  /lib/libucs.so.0(+0x26e6d) [0x77939cf58e6d]
+ 2  /lib/libucs.so.0(+0x2703d) [0x77939cf5903d]
+ 3  /lib/x86_64-linux-gnu/libc.so.6(+0x45330) [0x77939d245330]
+ 4  /lib/x86_64-linux-gnu/libcuda.so.1(+0x238b58) [0x779374c38b58]
+ 5  /lib/x86_64-linux-gnu/libcuda.so.1(+0x2d6c7a) [0x779374cd6c7a]
+ 6  /lib/x86_64-linux-gnu/libcuda.so.1(+0xd63ad2) [0x779375763ad2]
+ 7  /lib/x86_64-linux-gnu/libcuda.so.1(+0x1dd2fc) [0x779374bdd2fc]
+ 8  /lib/x86_64-linux-gnu/libcuda.so.1(+0xd1ae8a) [0x77937571ae8a]
+ 9  /lib/x86_64-linux-gnu/libcuda.so.1(+0x1cd605) [0x779374bcd605]
+10  /lib/x86_64-linux-gnu/libcuda.so.1(+0x37c182) [0x779374d7c182]
+11  ./align_m_c(+0x454e1) [0x60813bdf44e1]
+12  ./align_m_c(+0x13c74) [0x60813bdc2c74]
+13  ./align_m_c(+0x71695) [0x60813be20695]
+14  ./align_m_c(+0xa85d) [0x60813bdb985d]
+15  /lib/x86_64-linux-gnu/libc.so.6(+0x2a1ca) [0x77939d22a1ca]
+16  /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x8b) [0x77939d22a28b]
+17  ./align_m_c(+0x8b75) [0x60813bdb7b75]
+=================================
 --------------------------------------------------------------------------
-prterun noticed that process rank 1 with PID 348315 on node node122 exited on
+prterun noticed that process rank 1 with PID 348548 on node node122 exited on
 signal 11 (Segmentation fault).
 --------------------------------------------------------------------------
