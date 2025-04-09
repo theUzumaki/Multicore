@@ -298,3 +298,25 @@ PARALLEL ONE PROCESS TIME: 0.061707359999999996
 
 6 --------
 Basic run with cluster
+
+
+6 --------
+Basic run with cluster and median
+
+1000000 0.35 0.2 0.25 0 0 0 10000 9000 9000 50 100 M 4353435
+
+SEQUENTIAL TIME: 14.499544600000002
+./align_m_c
+PARALLEL ONE PROCESS TIME: 0.556042
+./align_m_c
+
+
+6 --------
+Basic run with cluster and median
+
+100000 0.35 0.2 0.25 0 0 0 100000 9000 9000 50 100 M 4353435
+
+SEQUENTIAL TIME: 13.466573400000001
+./align_m_c
+PARALLEL ONE PROCESS TIME: 0.273944
+./align_m_c

@@ -1,0 +1,7 @@
+CUDA Error in line: 515, misaligned address
+CUDA Error in line: 516, misaligned address
+CUDA Error in line: 517, misaligned address
+--------------------------------------------------------------------------
+prterun noticed that process rank 1 with PID 503197 on node node110 exited on
+signal 11 (Segmentation fault).
+--------------------------------------------------------------------------

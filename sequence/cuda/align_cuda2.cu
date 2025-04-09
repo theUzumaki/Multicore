@@ -372,6 +372,7 @@ int main(int argc, char *argv[]) {
 	/* Allocate and move the patterns to the GPU */
 	unsigned long *d_pat_length;
 	char **d_pattern;
+	if (rank == 0){
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_length, sizeof(unsigned long) * pat_number ) );
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pattern, sizeof(char *) * pat_number ) );
 
@@ -385,7 +386,7 @@ int main(int argc, char *argv[]) {
         	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern_in_host[ind], pattern[ind], pat_length[ind] * sizeof(char), cudaMemcpyHostToDevice ) );
 	}
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern, d_pattern_in_host, pat_number * sizeof(char *), cudaMemcpyHostToDevice ) );
-
+	}
 	/* Avoid the usage of arguments to take strategic decisions
 	 * In a real case the user only has the patterns and sequence data to analize
 	 */
@@ -411,7 +412,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr,"\n-- Error allocating aux pattern structure for size: %d\n", pat_number );
 		exit( EXIT_FAILURE );
 	}
-	
+
 	/* 3. Start global timer */
         CUDA_CHECK_FUNCTION( cudaDeviceSynchronize() );
 	double ttotal = cp_Wtime();
@@ -486,7 +487,7 @@ int main(int argc, char *argv[]) {
 	char *pinned_sequence;
 	CUDA_CHECK_FUNCTION( cudaMallocHost( &pinned_sequence, sizeof(char) * seq_length ) );
 	memcpy(pinned_sequence, sequence, sizeof(char) * seq_length);
-*/	
+*/
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_sequence, sizeof(char) * seq_length ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
 //	CUDA_CHECK_FUNCTION( cudaFreeHost(pinned_sequence) );
