@@ -235,6 +235,8 @@ int main(int argc, char *argv[]) {
 	MPI_Init( &argc, &argv );
 	int rank;
 	MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+	int size;
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
 	/* 1.1. Check minimum number of arguments */
 	if (argc < 15) {
@@ -370,23 +372,29 @@ int main(int argc, char *argv[]) {
 	free( pat_type );
 
 	/* Allocate and move the patterns to the GPU */
+	int chunk_size = (pat_number + size - 1) / size;
+	int start_pat = rank * chunk_size;
+	int end_pat = (rank + 1) * chunk_size;
+	if (end_pat > pat_number) end_pat = pat_number;
+	int pat_per_proc = end_pat - start_pat;
+
 	unsigned long *d_pat_length;
 	char **d_pattern;
-	if (rank == 0){
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_length, sizeof(unsigned long) * pat_number ) );
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pattern, sizeof(char *) * pat_number ) );
+	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_length, sizeof(unsigned long) * pat_per_proc ) );
+	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pattern, sizeof(char *) * pat_per_proc ) );
 
-	char **d_pattern_in_host = (char **)malloc( sizeof(char*) * pat_number );
+	char **d_pattern_in_host = (char **)malloc( sizeof(char*) * pat_per_proc );
 	if ( d_pattern_in_host == NULL ) {
-		fprintf(stderr,"\n-- Error allocating the patterns structures replicated in the host for size: %d\n", pat_number );
+		fprintf(stderr,"\n-- Error allocating the patterns structures replicated in the host for size: %d\n", pat_per_proc );
 		exit( EXIT_FAILURE );
 	}
-	for( ind=0; ind<pat_number; ind++ ) {
-		CUDA_CHECK_FUNCTION( cudaMalloc( &(d_pattern_in_host[ind]), sizeof(char *) * pat_length[ind] ) );
-        	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern_in_host[ind], pattern[ind], pat_length[ind] * sizeof(char), cudaMemcpyHostToDevice ) );
+	for( ind = start_pat; ind < end_pat; ind++ ) {
+		int local_ind = ind - start_pat;
+		CUDA_CHECK_FUNCTION( cudaMalloc( &(d_pattern_in_host[local_ind]), sizeof(char) * pat_length[ind] ) );
+		CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern_in_host[local_ind], pattern[ind], pat_length[ind] * sizeof(char), cudaMemcpyHostToDevice ) );
 	}
-	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern, d_pattern_in_host, pat_number * sizeof(char *), cudaMemcpyHostToDevice ) );
-	}
+	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pattern, d_pattern_in_host, pat_per_proc * sizeof(char *), cudaMemcpyHostToDevice ) );
+
 	/* Avoid the usage of arguments to take strategic decisions
 	 * In a real case the user only has the patterns and sequence data to analize
 	 */
@@ -468,13 +476,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* 5. Subdivide work among MPI processes */
-	int size;
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	int chunk_size = (pat_number + size - 1) / size;
-	int start_pat = rank * chunk_size;
-	int end_pat = (rank + 1) * chunk_size;
-	if (end_pat > pat_number) end_pat = pat_number;
-	int pat_per_proc = end_pat - start_pat;
 
 	/* 6. Allocate local arrays */
 	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
@@ -509,6 +510,7 @@ int main(int argc, char *argv[]) {
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
 	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern + start_pat, d_pat_length + start_pat, d_pat_matches, d_pat_found + start_pat, d_seq_matches, pat_per_proc, seq_length);
+	cudaDeviceSynchronize();
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
