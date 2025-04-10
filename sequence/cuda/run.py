@@ -41,6 +41,11 @@ def submit_job():
 
 # Function to wait for a job to complete
 def wait_for_job(job_id):
+    if os.path.exists(output_file):
+        os.remove(output_file)
+    if os.path.exists(error_file):
+        os.remove(error_file)
+
     print(f"Waiting for job {job_id} to complete...")
     counter = 0
     while True:
@@ -81,6 +86,7 @@ for i in range(n):
     print(f"Submitting job {i + 1} of {n}...")
     job_id = submit_job()
     job_ids.append(job_id)
+    time.sleep(30)
 
 # Wait for all jobs to complete and collect execution times
 execution_times = []
