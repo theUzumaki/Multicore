@@ -85,7 +85,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
 
     input_data = " ".join(input_data)
     execution_times= []
-    open("cuda_execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
+    open("execution_times.txt", "a").write(f"\n\n{input_data}\n\n")
     with concurrent.futures.ThreadPoolExecutor(1) as executor:
         futures = [executor.submit(run_seq_executable, "./align_seq", input_data) for _ in range(5)]
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
@@ -101,7 +101,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
         line= f"{average_time:.6f} seconds\n"
     seq_time= average_time
-    open("cuda_execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(seq_time) + f"\n{executable}\n")
+    open("execution_times.txt", "a").write("SEQUENTIAL TIME: " + str(seq_time) + f"\n{executable}\n")
     print("SEQUENTIAL TIME: " + str(seq_time) + "\n\n")
     execution_times= []
     counter= 0
@@ -125,7 +125,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
         print(f"Average Execution Time: {average_time:.6f} seconds\n")
         line= f"{median_time:.6f} seconds\n"
     seq_time= median_time
-    open("cuda_execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
+    open("execution_times.txt", "a").write("PARALLEL ONE PROCESS TIME: " + str(seq_time) + f"\n{executable}\n")
     print("PARALLEL ONE PROCESS TIME: " + str(seq_time) + "\n\n")
     threads= [2, 4, 8]
     all_times= []
@@ -156,7 +156,7 @@ def measure_execution_time(executable: str, input_data: list, n: int):
         efficiency= (speedup / cores) * 100
         all_times.append(input_data + str(execution_times))
         line= f"{median_time:.6f} seconds\t{speedup:.6f}\t{efficiency:.6f}%\n"
-        with open("cuda_execution_times.txt", "a") as f:
+        with open("execution_times.txt", "a") as f:
             f.write(line)
     open("all_times.txt", "a").write("\n")
     open("all_times.txt", "a").write(str(all_times))

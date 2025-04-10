@@ -524,7 +524,11 @@ printf("OFFSET FOR RANK %d IS: %d AND PATPERPROC: %d\n", rank, pat_number / size
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 MPI_Barrier(MPI_COMM_WORLD);
-if (rank==0) printf("FIRST OF GLOBAL: %lu AND AFTER: %lu / %lu\n", pat_found[0], pat_found[pat_per_proc], pat_found [(pat_number / size) * rank]);
+if (rank==0) printf("FIRST OF GLOBAL: %lu AND AFTER: %lu / %lu\n", pat_found[0], pat_found[pat_per_proc], pat_found [(pat_number / size) * 1]);
+if (rank==0) {
+	pat_found[pat_per_proc]= 2;
+	printf("TEST VALUE: %lu / %lu\n", pat_found[pat_per_proc], pat_found[(pat_number / size)]);
+}
 	/* 11. Free device memory */
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_found) );
