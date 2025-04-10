@@ -478,7 +478,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Subdivide work among MPI processes */
 
 	/* 6. Allocate local arrays */
-	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
+	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_per_proc);
 	int *local_seq_matches= (int*)malloc(sizeof(int) * seq_length);
 	int local_pat_matches= 0;
 
@@ -494,8 +494,8 @@ int main(int argc, char *argv[]) {
 //	CUDA_CHECK_FUNCTION( cudaFreeHost(pinned_sequence) );
 
 	unsigned long *d_pat_found;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_number ) );
-	CUDA_CHECK_FUNCTION (cudaMemcpy( d_pat_found, pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyHostToDevice ) );
+	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );
+	CUDA_CHECK_FUNCTION (cudaMemcpy( d_pat_found, pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
 
 	int *d_seq_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches, sizeof(int) * seq_length ) );
@@ -504,17 +504,17 @@ int main(int argc, char *argv[]) {
 	int *d_pat_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) ) );
 
-	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pat_length + start_pat, pat_length + start_pat, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pat_length, pat_length + start_pat, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
 
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
-	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern + start_pat, d_pat_length + start_pat, d_pat_matches, d_pat_found + start_pat, d_seq_matches, pat_per_proc, seq_length);
+	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	cudaDeviceSynchronize();
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
-	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_number, cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
