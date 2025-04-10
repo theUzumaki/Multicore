@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "back to work on cuda"
+git commit -m "doing basics test of one process, working on run.py which doesnt work"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 

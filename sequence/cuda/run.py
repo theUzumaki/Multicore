@@ -61,7 +61,9 @@ def wait_for_job(job_id):
     # Ensure output and error files exist
     while not (os.path.exists(output_file) and os.path.exists(error_file)):
         time.sleep(1)
-        print(f"Waiting for output and error files for job {job_id} to be generated...")
+        counter+= 1
+        if counter % 10 == 0:
+             print(f"Waiting for output and error files for job {job_id} to be generated...")
 
     # Read the output and error files
     with open(output_file, "r") as f:
@@ -76,7 +78,11 @@ def wait_for_job(job_id):
     print(f"Job {job_id} Error (first 15 lines):")
     print(job_error)
 
-    execution_time = job_output.split("Time: ")[-1].split()[0]
+    try:
+        execution_time = job_output.split("Time: ")[-1].split()[0]
+    except:
+        print(f"ERROR READING JOB {job_id}")
+        execution_time = 0
 
     return float(execution_time)
 
@@ -86,7 +92,7 @@ for i in range(n):
     print(f"Submitting job {i + 1} of {n}...")
     job_id = submit_job()
     job_ids.append(job_id)
-    time.sleep(30)
+    time.sleep(3)
 
 # Wait for all jobs to complete and collect execution times
 execution_times = []
