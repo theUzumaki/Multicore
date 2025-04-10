@@ -1,9 +1,9 @@
 100000 0.35 0.2 0.25 0 0 0 100000 9000 9000 50 100 M 4353435
-sequenziale 12,3
+sequenziale 12,3 13,525 13,521 13,524
 parallel one 0,302 0,264
 parallel two 0,407 (con gather 0,525)
 
 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
-sequenziale 10
-parallel one 0,468
-parallel two 0,271 0,67 2,02 0,546 0,301
+sequenziale 10, 9,040 12*
+parallel one 0,468 0,448
+parallel two 0,271 0,67 2,02 0,546 0,301 0,278
