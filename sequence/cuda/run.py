@@ -40,8 +40,7 @@ while True:
     time.sleep(1)
     counter+= 1
     if counter % 10 == 0:
-        counter= 0
-        print("Waiting for job to complete...")
+        print(f"Waiting for job to complete... {counter} seconds passed...")
 
 # Ensure output and error files exist
 while not (os.path.exists(output_file) and os.path.exists(error_file)):
