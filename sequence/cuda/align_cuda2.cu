@@ -517,12 +517,14 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
-
+printf("FIRST OF LOCAL: %lu OF RANK %d\n", local_pat_found[0], rank);
+printf("OFFSET FOR RANK %d IS: %d AND PATPERPROC: %d\n", rank, pat_number / size * rank, pat_per_proc);
 	/* 10. Gather results from all MPI processes */
 	MPI_Reduce(local_pat_found, pat_found + (pat_number / size) * rank, pat_per_proc, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
+MPI_Barrier(MPI_COMM_WORLD);
+if (rank==0) printf("FIRST OF GLOBAL: %lu AND AFTER: %lu\n", pat_found[0], pat_found[pat_per_proc]);
 	/* 11. Free device memory */
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_found) );
