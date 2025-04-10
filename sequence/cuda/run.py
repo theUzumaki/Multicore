@@ -12,15 +12,15 @@ result_file = "manual_result.txt"
 # Number of runs
 n = 5  # Change this to the desired number of runs
 
-# Function to run the job and measure execution time
-def run_job():
+# Function to submit a job and return its job ID
+def submit_job():
     # Remove existing output and error files if they exist
     if os.path.exists(output_file):
         os.remove(output_file)
     if os.path.exists(error_file):
         os.remove(error_file)
 
-    # Run the slurm job
+    # Submit the slurm job
     process = subprocess.Popen(["sbatch", slurm_job], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
 
@@ -36,8 +36,12 @@ def run_job():
     if not job_id:
         raise RuntimeError("Failed to submit job or extract job ID.")
 
-    # Wait for the job to complete by checking its status
-    print(f"Submitted job {job_id}, waiting for completion...")
+    print(f"Submitted job {job_id}")
+    return job_id
+
+# Function to wait for a job to complete
+def wait_for_job(job_id):
+    print(f"Waiting for job {job_id} to complete...")
     counter = 0
     while True:
         status_process = subprocess.Popen(["squeue", "-j", job_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -47,12 +51,12 @@ def run_job():
         time.sleep(1)
         counter += 1
         if counter % 10 == 0:
-            print(f"Waiting for job to complete... {counter} seconds passed...")
+            print(f"Waiting for job {job_id} to complete... {counter} seconds passed...")
 
     # Ensure output and error files exist
     while not (os.path.exists(output_file) and os.path.exists(error_file)):
         time.sleep(1)
-        print("Waiting for output and error files to be generated...")
+        print(f"Waiting for output and error files for job {job_id} to be generated...")
 
     # Read the output and error files
     with open(output_file, "r") as f:
@@ -62,22 +66,29 @@ def run_job():
         job_error = ''.join(f.readlines()[:15])
 
     # Print the first 15 lines of the files
-    print("Job Output (first 15 lines):")
+    print(f"Job {job_id} Output (first 15 lines):")
     print(job_output)
-    print("Job Error (first 15 lines):")
+    print(f"Job {job_id} Error (first 15 lines):")
     print(job_error)
 
     execution_time = job_output.split("Time: ")[-1].split()[0]
 
-    return execution_time
+    return float(execution_time)
 
-# Run the job n times and collect execution times
-execution_times = []
+# Submit all jobs and collect their job IDs
+job_ids = []
 for i in range(n):
-    print(f"Starting run {i + 1} of {n}...")
-    execution_time = run_job()
+    print(f"Submitting job {i + 1} of {n}...")
+    job_id = submit_job()
+    job_ids.append(job_id)
+
+# Wait for all jobs to complete and collect execution times
+execution_times = []
+for i, job_id in enumerate(job_ids):
+    print(f"Waiting for job {i + 1} of {n} (Job ID: {job_id})...")
+    execution_time = wait_for_job(job_id)
     execution_times.append(execution_time)
-    print(f"Run {i + 1} completed in {execution_time:.2f} seconds.")
+    print(f"Job {i + 1} completed in {execution_time:.2f} seconds.")
 
 # Calculate average and median times
 average_time = sum(execution_times) / len(execution_times)
