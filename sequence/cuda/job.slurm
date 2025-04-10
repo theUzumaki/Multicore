@@ -2,7 +2,7 @@
 #SBATCH --job-name=test_job
 #SBATCH --output=job_output.txt
 #SBATCH --error=job_error.txt
-#SBATCH --nodes=2
+#SBATCH --ntasks=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=1
