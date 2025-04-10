@@ -478,7 +478,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Subdivide work among MPI processes */
 
 	/* 6. Allocate local arrays */
-	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_per_proc);
+	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
 	int *local_seq_matches= (int*)malloc(sizeof(int) * seq_length);
 	int local_pat_matches= 0;
 
@@ -514,21 +514,15 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
-	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found + pat_per_proc * rank, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
-printf("FIRST OF LOCAL: %lu OF RANK %d\n", local_pat_found[0], rank);
-printf("OFFSET FOR RANK %d IS: %d AND PATPERPROC: %d\n", rank, pat_number / size * rank, pat_per_proc);
+
 	/* 10. Gather results from all MPI processes */
-	MPI_Reduce(local_pat_found, pat_found + (pat_number / size * rank), pat_per_proc, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Reduce(local_pat_found, pat_found, pat_number, MPI_UNSIGNED_LONG, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-MPI_Barrier(MPI_COMM_WORLD);
-if (rank==0) printf("FIRST OF GLOBAL: %lu AND AFTER: %lu / %lu\n", pat_found[0], pat_found[pat_per_proc], pat_found [(pat_number / size) * 1]);
-if (rank==0) {
-	pat_found[pat_per_proc]= 2;
-	printf("TEST VALUE: %lu / %lu\n", pat_found[pat_per_proc], pat_found[(pat_number / size)]);
-}
+
 	/* 11. Free device memory */
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_found) );
