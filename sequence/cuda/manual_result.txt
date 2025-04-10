@@ -6,4 +6,4 @@ parallel two 0,407 (con gather 0,525)
 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
 sequenziale 10
 parallel one 0,468
-parallel two 0,271
+parallel two 0,271 0,67 2,02 0,546
