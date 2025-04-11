@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Used pinned memory for sequence and pat_found"
+git commit -m "Done tests with L1 disabilitated"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
