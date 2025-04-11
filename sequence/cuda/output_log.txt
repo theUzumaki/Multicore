@@ -16,3 +16,23 @@ Number of runs: 6
 Execution times: [0.552196, 0.562996, 0.598975, 0.545037, 0.593993, 0.617012]
 Average time: 0.5783681666666667 seconds
 Median time: 0.5784945 seconds
+
+- pinned memory only on sequence
+Input: srun ./align_m_c 1000000 0.35 0.2 0.25 0 0 0 10000 9000 9000 50 100 M 4353435
+Number of runs: 6
+Execution times: [0.522497, 0.496953, 0.554276, 0.546728, 0.534307, 0.563037]
+Average time: 0.5362996666666667 seconds
+Median time: 0.5405175 seconds
+
+- pinned memory on both
+Input: srun ./align_m_c 1000000 0.35 0.2 0.25 0 0 0 10000 9000 9000 50 100 M 4353435
+Number of runs: 4
+Execution times: [0.51636, 0.52553, 0.55413, 0.566943]
+Average time: 0.54074075 seconds
+Median time: 0.53983 seconds
+
+Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
+Number of runs: 4
+Execution times: [0.378372, 0.38077, 0.3845, 0.368175]
+Average time: 0.37795425 seconds
+Median time: 0.379571 seconds

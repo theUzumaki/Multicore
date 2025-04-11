@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Trying pinned memory for sequence"
+git commit -m "Used pinned memory for sequence and pat_found"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 

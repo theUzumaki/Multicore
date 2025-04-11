@@ -494,17 +494,22 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaHostUnregister(sequence) );
 
 	unsigned long *d_pat_found;
+
+//	CUDA_CHECK_FUNCTION( cudaHostRegister(pat_found, sizeof(char) * pat_per_proc, cudaHostRegisterDefault ) );
+
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );
-	CUDA_CHECK_FUNCTION (cudaMemcpy( d_pat_found, pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
+//	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pat_found, pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
 
 	int *d_seq_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches, sizeof(int) * seq_length ) );
-	CUDA_CHECK_FUNCTION( cudaMemcpy( d_seq_matches, local_seq_matches, sizeof(int) * seq_length, cudaMemcpyHostToDevice ) );
+//	CUDA_CHECK_FUNCTION( cudaMemcpy( d_seq_matches, local_seq_matches, sizeof(int) * seq_length, cudaMemcpyHostToDevice ) );
 
 	int *d_pat_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) ) );
 
+	CUDA_CHECK_FUNCTION( cudaHostRegister(pat_length + start_pat, sizeof(unsigned long) * pat_per_proc, cudaHostRegisterDefault) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pat_length, pat_length + start_pat, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
+	CUDA_CHECK_FUNCTION( cudaHostUnregister(pat_length + start_pat) );
 
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
