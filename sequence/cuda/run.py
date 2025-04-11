@@ -10,7 +10,7 @@ slurm_job = "onenodeonegpu.slurm"
 result_file = "output_log.txt"
 
 # Number of runs
-n = 5  # Change this to the desired number of runs
+n = 6  # Change this to the desired number of runs
 
 # Function to submit a job and return its job ID
 def submit_job():
@@ -133,7 +133,7 @@ with open(result_file, "a") as f:
     f.write(f"\nInput: {inputtxt}\n")
     f.write(f"Number of runs: {n}\n")
     f.write(f"Execution times: {execution_times}\n")
-    f.write(f"Average time: {average_time:.2f} seconds\n")
-    f.write(f"Median time: {median_time:.2f} seconds\n")
+    f.write(f"Average time: {average_time} seconds\n")
+    f.write(f"Median time: {median_time} seconds\n")
 
 print(f"Results saved to {result_file}")
