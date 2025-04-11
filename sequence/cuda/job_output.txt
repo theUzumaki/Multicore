@@ -1,2 +1,0 @@
-Running on: node110
-Total tasks: 1
