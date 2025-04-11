@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Done test for onenodeonegpu 100/100, run.py working"
+git commit -m "Done all tests for one parallel, trying to improve gpu waiting on multinode"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
