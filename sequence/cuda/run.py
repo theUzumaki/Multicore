@@ -100,7 +100,7 @@ for i in range(n):
     print(f"Submitting job {i + 1} of {n}...")
     job_id = submit_job()
     job_ids.append(job_id)
-    time.sleep(3)
+    time.sleep(10)
 
 # Wait for all jobs to complete and collect execution times
 execution_times = []
