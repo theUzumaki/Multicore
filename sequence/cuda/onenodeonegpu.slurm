@@ -2,11 +2,10 @@
 #SBATCH --job-name=test_job
 #SBATCH --output=job_output.txt
 #SBATCH --error=job_error.txt
-#SBATCH --nodes=2
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --partition=students
 
 echo "Running on: $SLURM_JOB_NODELIST"
 echo "Total tasks: $SLURM_NTASKS"
