@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "First tests of onenodeonegpu basics, fixed run.py"
+git commit -m "First tests of onenodeonegpu basics, fixed run.py 2"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
