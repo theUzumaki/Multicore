@@ -7,7 +7,7 @@ import statistics
 output_file = "job_output.txt"
 error_file = "job_error.txt"
 slurm_job = "onenodeonegpu.slurm"
-result_file = "manual_result.txt"
+result_file = "output_log.txt"
 
 # Number of runs
 n = 5  # Change this to the desired number of runs
@@ -96,16 +96,11 @@ def wait_for_job(job_id):
 
 # Submit all jobs and collect their job IDs
 job_ids = []
+execution_times = []
 for i in range(n):
     print(f"Submitting job {i + 1} of {n}...")
     job_id = submit_job()
     job_ids.append(job_id)
-    time.sleep(10)
-
-# Wait for all jobs to complete and collect execution times
-execution_times = []
-for i, job_id in enumerate(job_ids):
-    print(f"Waiting for job {i + 1} of {n} (Job ID: {job_id})...")
     execution_time = wait_for_job(job_id)
     execution_times.append(execution_time)
     print(f"Job {i + 1} completed in {execution_time:.2f} seconds.")
@@ -114,8 +109,13 @@ for i, job_id in enumerate(job_ids):
 average_time = sum(execution_times) / len(execution_times)
 median_time = statistics.median(execution_times)
 
-# Save results to manual_result.txt
+# Read the input from slurm_job as it is the last line
+with open(slurm_job, "r") as slurm_file:
+    inputtxt = slurm_file.readlines()[-1].strip()
+
+# Save results to result_file
 with open(result_file, "a") as f:
+    f.write(f"\nInput: {inputtxt}\n")
     f.write(f"Number of runs: {n}\n")
     f.write(f"Execution times: {execution_times}\n")
     f.write(f"Average time: {average_time:.2f} seconds\n")
