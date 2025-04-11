@@ -485,14 +485,13 @@ int main(int argc, char *argv[]) {
 
 	/* 6. Allocate device memory for sequence and patterns */
 	char *d_sequence;
-/*
-	char *pinned_sequence;
-	CUDA_CHECK_FUNCTION( cudaMallocHost( &pinned_sequence, sizeof(char) * seq_length ) );
-	memcpy(pinned_sequence, sequence, sizeof(char) * seq_length);
-*/
+
+	CUDA_CHECK_FUNCTION( cudaHostRegister(sequence, sizeof(char) * seq_length, cudaHostRegisterDefault) );
+
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_sequence, sizeof(char) * seq_length ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
-//	CUDA_CHECK_FUNCTION( cudaFreeHost(pinned_sequence) );
+
+	CUDA_CHECK_FUNCTION( cudaHostUnregister(sequence) );
 
 	unsigned long *d_pat_found;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );

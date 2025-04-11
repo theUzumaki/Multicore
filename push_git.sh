@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Done all tests for one parallel, trying to improve gpu waiting on multinode"
+git commit -m "Trying pinned memory for sequence"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
