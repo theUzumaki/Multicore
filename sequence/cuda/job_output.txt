@@ -1,9 +1,7 @@
-
-Time: 0.612953
-Result: 10000, 6903, 58380
-
+Running on: node110
+Total tasks: 1
 DEVICE SET: 0
 
-Time: 0.515448
+Time: 0.560682
 Result: 10000, 6903, 58380
 
