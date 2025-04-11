@@ -6,7 +6,7 @@ import statistics
 # Paths to the files
 output_file = "job_output.txt"
 error_file = "job_error.txt"
-slurm_job = "job.slurm"
+slurm_job = "onenodeonegpu.slurm"
 result_file = "manual_result.txt"
 
 # Number of runs
