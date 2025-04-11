@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
 	int size;
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	CUDA_CHECK_FUNCTION( cudaSetDevice( rank % 2 ) );
-printf("DEVICE SET: %d\n", rank % 2);
+	
 	/* 1.1. Check minimum number of arguments */
 	if (argc < 15) {
 		fprintf(stderr, "\n-- Error: Not enough arguments when reading configuration from the command line\n\n");

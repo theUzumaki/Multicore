@@ -73,6 +73,7 @@ def wait_for_job(job_id):
         job_error = ''.join(f.readlines()[:15])
 
     # Print the first 15 lines of the files
+    print()
     print(f"Job {job_id} Output (first 15 lines):")
     print(job_output)
     print(f"Job {job_id} Error (first 15 lines):")
