@@ -79,13 +79,20 @@ def wait_for_job(job_id):
     print(f"Job {job_id} Error (first 15 lines):")
     print(job_error)
 
-    try:
-        execution_time = job_output.split("Time: ")[-1].split()[0]
-    except:
-        print(f"ERROR READING JOB {job_id}")
-        execution_time = 0
+    # Extract execution time from the output file
+    execution_time = None
+    for line in job_output.splitlines():
+        if line.startswith("Time:"):
+            parts = line.split(",")
+            if len(parts) > 0:
+                try:
+                    execution_time = float(parts[0].split(":")[1].strip())
+                except ValueError:
+                    execution_time = 0
+                    raise RuntimeError("Failed to parse execution time from output.")
+            break
 
-    return float(execution_time)
+    return execution_time
 
 # Submit all jobs and collect their job IDs
 job_ids = []
