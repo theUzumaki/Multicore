@@ -101,7 +101,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int length) {
 	int tid = threadIdx.x;
 	extern __shared__ int shared_data[];
-	amount = length / blockDim.x;
+	int amount = length / blockDim.x;
 	for (int i = 0; i < amount; i++) shared_data[tid] = d_block_pat_matches[tid + amount];
 	__syncthreads();
 
@@ -555,7 +555,7 @@ int main(int argc, char *argv[]) {
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 	int threads_per_block_reduction = min(blocks_per_grid, 1024); // Ensure threads per block <= 1024
-	reduced_sum<<<1, threads_per_block_reduction, blocks_per_grid * sizeof(int)>>>(d_pat_matches, d_total_matches);
+	reduced_sum<<<1, threads_per_block_reduction, blocks_per_grid * sizeof(int)>>>(d_pat_matches, d_total_matches, blocks_per_grid);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
