@@ -525,7 +525,9 @@ int main(int argc, char *argv[]) {
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
-	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
+	size_t shared_memory_size = threads_per_block * sizeof(int);
+
+	search_patterns<<<blocks_per_grid, threads_per_block, shared_memory_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
