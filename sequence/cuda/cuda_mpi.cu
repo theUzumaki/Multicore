@@ -554,7 +554,7 @@ int main(int argc, char *argv[]) {
 	// Launch the search_patterns kernel
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
-	reduced_sum<<<1, blocks_per_grid>>>(d_pat_matches, d_total_matches);
+	reduced_sum<<<1, blocks_per_grid, blocks_per_grid * sizeof(int)>>>(d_pat_matches, d_total_matches);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
