@@ -76,7 +76,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 		}
 
 		if (found) {
-			all_matches[pat] = 1;
+			all_matches[threadIdx.x] = 1;
 			d_pat_found[pat] = start + 1;
 			for (lind = 0; lind < length; lind++) {
 				atomicAdd(&d_seq_matches[start + lind], 1);
@@ -102,12 +102,14 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
 	int tid = threadIdx.x;
 	extern __shared__ int shared_data[];
 	int amount = length / blockDim.x;
-	for (int i = 0; i < amount; i++) shared_data[tid] = d_block_pat_matches[tid + amount];
+	for (int i = 0; i < amount; i++) shared_data[tid * amount + i] = d_block_pat_matches[tid * amount + i];
 	__syncthreads();
 
-	for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
-		if (tid < stride) {
-			shared_data[tid] += shared_data[tid + stride];
+	for (int stride = length / 2; stride > 0; stride /= 2) {
+		for (int i = 0; i < amount; i++) {
+			if (tid * amount + i < stride) {
+				shared_data[tid * amount + i] += shared_data[(tid * amount + stride) + i];
+			}
 		}
 		__syncthreads();
 	}
