@@ -490,8 +490,18 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_sequence, sizeof(char) * seq_length ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
 	CUDA_CHECK_FUNCTION( cudaHostUnregister(sequence) );
-	texture<char, cudaTextureType1D, cudaReadModeElementType> tex_sequence;
-	cudaBindTexture(NULL, tex_sequence, d_sequence, seq_length * sizeof(char));
+	
+	cudaTextureObject_t tex_sequence;
+	cudaResourceDesc resDesc = {};
+	resDesc.resType = cudaResourceTypeLinear;
+	resDesc.res.linear.devPtr = d_sequence;
+	resDesc.res.linear.sizeInBytes = seq_length * sizeof(char);
+	resDesc.res.linear.desc = cudaCreateChannelDesc<char>();
+
+	cudaTextureDesc texDesc = {};
+	texDesc.readMode = cudaReadModeElementType;
+
+	CUDA_CHECK_FUNCTION(cudaCreateTextureObject(&tex_sequence, &resDesc, &texDesc, NULL));
 
 	unsigned long *d_pat_found;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );
