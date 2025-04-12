@@ -63,7 +63,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
         for (start = 0; start <= seq_length - d_pat_length[pat]; start++) {
 
                 for (lind = 0; lind < d_pat_length[pat]; lind++) {
-                        if (d_sequence[start + lind] != d_pattern[pat][lind]) break;
+                        if (tex1Dfetch(tex_sequence, start + lind); != d_pattern[pat][lind]) break;
                 }
                 if (lind == d_pat_length[pat]) {
                         atomicAdd(d_pat_matches, 1);
@@ -490,6 +490,8 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_sequence, sizeof(char) * seq_length ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
 	CUDA_CHECK_FUNCTION( cudaHostUnregister(sequence) );
+	texture<char, cudaTextureType1D, cudaReadModeElementType> tex_sequence;
+	cudaBindTexture(NULL, tex_sequence, d_sequence, seq_length * sizeof(char));
 
 	unsigned long *d_pat_found;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );
@@ -508,7 +510,6 @@ int main(int argc, char *argv[]) {
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
 	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
-	cudaDeviceSynchronize();
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
@@ -522,6 +523,7 @@ int main(int argc, char *argv[]) {
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	/* 11. Free device memory */
+	cudaUnbindTexture(tex_sequence);
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_found) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_seq_matches) );
