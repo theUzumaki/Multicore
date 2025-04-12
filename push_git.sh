@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Abandoned cache work and focusing on reduce"
+git commit -m "After failing lots of reduce i have tried with a multi kernel approach, no tests"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
