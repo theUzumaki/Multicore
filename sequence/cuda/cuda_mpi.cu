@@ -80,17 +80,14 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 			}
 		}
 	}
-	__syncthreads();
-
-	for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
-		if (threadIdx.x < stride) {
-			shared_pat_matches[threadIdx.x] += shared_pat_matches[threadIdx.x + stride];
+	
+	if (threadIdx.x < warpSize) {
+		for (int offset = warpSize / 2; offset > 0; offset /= 2) {
+			shared_pat_matches[threadIdx.x] += __shfl_down_sync(0xFFFFFFFF, shared_pat_matches[threadIdx.x], offset);
 		}
-		__syncthreads();
-	}
-
-	if (threadIdx.x == 0) {
-		atomicAdd(d_pat_matches, shared_pat_matches[0]);
+		if (threadIdx.x == 0) {
+			atomicAdd(d_pat_matches, shared_pat_matches[threadIdx.x]);
+		}
 	}
 }
 
