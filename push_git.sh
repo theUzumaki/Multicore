@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "After failing lots of reduce i have tried with a multi kernel approach, no tests"
+git commit -m "After failing lots of reduce i have tried with a multi kernel approach, some tests failed, trying again"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 

@@ -101,12 +101,12 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int length) {
 	int tid = threadIdx.x;
 	extern __shared__ int shared_data[];
-	int amount = length / blockDim.x; 
+	int amount = length  + blockDim.x - 1 / blockDim.x; 
 	for (int i = 0; i < amount; i++) if (tid * amount + i < length) shared_data[tid * amount + i] = d_block_pat_matches[tid * amount + i];
 	__syncthreads();
 
-	for (int stride = length / 2; stride > 0; stride /= 2) {
-		amount = amount / 2;
+	for (int stride = length + 1 / 2; stride > 0; stride /= 2) {
+		amount = amount + 1 / 2;
 		for (int i = 0; i < amount; i++) {
 			if (tid * amount + i < stride) {
 				shared_data[tid * amount + i] += shared_data[tid * amount + stride + i];
