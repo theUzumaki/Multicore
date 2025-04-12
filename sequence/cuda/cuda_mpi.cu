@@ -552,7 +552,7 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaHostUnregister(pat_length + start_pat) );
 	
 	/* 8. Launch CUDA kernel */
-	int threads_per_block = 256;
+	int threads_per_block = 512;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
 	int shared_mem_size = threads_per_block * sizeof(int);
 
