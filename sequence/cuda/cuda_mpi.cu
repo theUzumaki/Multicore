@@ -86,11 +86,12 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	}
 	__syncthreads();
 
-	for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
-		__syncthreads();
+	for (int stride = ( blockDim.x + 1 ) / 2; stride > 0; stride /= 2) {
 		if (threadIdx.x < stride) {
 			all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
 		}
+
+		__syncthreads();
 	}
 
 	if (threadIdx.x == 0) {
@@ -99,24 +100,30 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 }
 
 __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int length) {
-	int tid = threadIdx.x;
-	extern __shared__ int shared_data[];
-	int amount = (length + blockDim.x - 1) / blockDim.x; 
-	for (int i = 0; i < amount; i++) if (tid * amount + i < length) shared_data[tid * amount + i] = d_block_pat_matches[tid * amount + i];
-	__syncthreads();
+    extern __shared__ int shared_data[];
 
-	for (int stride = ( length + 1 ) / 2; stride > 0; stride /= 2) {
-		amount = ( amount + 1 ) / 2;
-		for (int i = 0; i < amount; i++) {
-			if (tid * amount + i < stride) {
-				shared_data[tid * amount + i] += shared_data[tid * amount + stride + i];
-			}
-		}
-		__syncthreads();
-	}
+    int tid = threadIdx.x;
+    int global_idx = blockIdx.x * blockDim.x + tid;
 
+    // Load data into shared memory
+    if (global_idx < length) {
+        shared_data[tid] = d_block_pat_matches[global_idx];
+    } else {
+        shared_data[tid] = 0; // Handle out-of-bounds threads
+    }
+    __syncthreads();
+
+    // Perform binary tree reduction
+    for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+        if (tid < stride) {
+            shared_data[tid] += shared_data[tid + stride];
+        }
+        __syncthreads();
+    }
+
+	// Write the result from thread 0 to global memory
 	if (tid == 0) {
-		*d_total_matches = shared_data[0];
+		atomicAdd(d_total_matches, shared_data[0]);
 	}
 }
 
@@ -557,8 +564,9 @@ int main(int argc, char *argv[]) {
 	// Launch the search_patterns kernel
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
-	int threads_per_block_reduction = min(blocks_per_grid, 1024); // Ensure threads per block <= 1024
-	reduced_sum<<<1, threads_per_block_reduction, blocks_per_grid * sizeof(int)>>>(d_pat_matches, d_total_matches, blocks_per_grid);
+	int threads_per_block_reduction = min(1024, blocks_per_grid);
+	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
+	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, blocks_per_grid * sizeof(int)>>>(d_pat_matches, d_total_matches, blocks_per_grid);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
