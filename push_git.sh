@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "New try with texture memory on kaggle"
+git commit -m "New try with read_only memory on kaggle"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 

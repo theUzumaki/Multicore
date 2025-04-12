@@ -54,25 +54,25 @@ double cp_Wtime(){
  *
  */
 /* ADD KERNELS AND OTHER FUNCTIONS HERE */
-__global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned long *d_pat_length, int *d_pat_matches, unsigned long *d_pat_found, int *d_seq_matches, int pat_number, unsigned long seq_length, cudaTextureObject_t tex_sequence) {
-	int pat = blockIdx.x * blockDim.x + threadIdx.x;
-	if (pat >= pat_number) return;
+__global__ void search_patterns(const char *__restrict__ d_sequence, char **d_pattern, unsigned long *d_pat_length, int *d_pat_matches, unsigned long *d_pat_found, int *d_seq_matches, int pat_number, unsigned long seq_length) {
+        int pat = blockIdx.x * blockDim.x + threadIdx.x;
+        if (pat >= pat_number) return;
 
-	unsigned long start, lind;
+        unsigned long start, lind;
 		
-	for (start = 0; start <= seq_length - d_pat_length[pat]; start++) {
+        for (start = 0; start <= seq_length - d_pat_length[pat]; start++) {
 
-		for (lind = 0; lind < d_pat_length[pat]; lind++) {
-			if (tex1Dfetch<char>(tex_sequence, start + lind) != d_pattern[pat][lind]) break;
-		}
-		if (lind == d_pat_length[pat]) {
-			atomicAdd(d_pat_matches, 1);
-			d_pat_found[pat] = start + 1;
-			for (lind = 0; lind < d_pat_length[pat]; lind++) {
-				atomicAdd(&d_seq_matches[start + lind], 1);
-			}
-			break;
-		}
+                for (lind = 0; lind < d_pat_length[pat]; lind++) {
+                        if (__ldg(&d_sequence[start + lind]) != d_pattern[pat][lind]) break;
+                }
+                if (lind == d_pat_length[pat]) {
+                        atomicAdd(d_pat_matches, 1);
+                        d_pat_found[pat] = start + 1;
+	                for (lind = 0; lind < d_pat_length[pat]; lind++) {
+                                atomicAdd(&d_seq_matches[start + lind], 1);
+                        }
+                        break;
+                }
 	}
 }
 
@@ -491,18 +491,6 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_sequence, sequence, sizeof(char) * seq_length, cudaMemcpyHostToDevice ) );
 	CUDA_CHECK_FUNCTION( cudaHostUnregister(sequence) );
 
-	cudaTextureObject_t tex_sequence;
-	cudaResourceDesc resDesc = {};
-	resDesc.resType = cudaResourceTypeLinear;
-	resDesc.res.linear.devPtr = d_sequence;
-	resDesc.res.linear.sizeInBytes = seq_length * sizeof(char);
-	resDesc.res.linear.desc = cudaCreateChannelDesc<char>();
-
-	cudaTextureDesc texDesc = {};
-	texDesc.readMode = cudaReadModeElementType;
-
-	CUDA_CHECK_FUNCTION(cudaCreateTextureObject(&tex_sequence, &resDesc, &texDesc, NULL));
-
 	unsigned long *d_pat_found;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );
 
@@ -519,7 +507,7 @@ int main(int argc, char *argv[]) {
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
-	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length, tex_sequence);
+	search_patterns<<<blocks_per_grid, threads_per_block>>>((const char *)d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
@@ -533,7 +521,6 @@ int main(int argc, char *argv[]) {
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	/* 11. Free device memory */
-	cudaDestroyTextureObject(tex_sequence);
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_found) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_seq_matches) );
