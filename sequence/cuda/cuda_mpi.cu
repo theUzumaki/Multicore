@@ -76,7 +76,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 		}
 
 		if (found) {
-			all_matches[threadIdx.x] = 1;
+			all_matches[pat] = 1;
 			d_pat_found[pat] = start + 1;
 			for (lind = 0; lind < length; lind++) {
 				atomicAdd(&d_seq_matches[start + lind], 1);
