@@ -151,7 +151,7 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
 			printf("shared_data[%d] = %d\n", tid, shared_data[tid]);
         }
         __syncthreads();
-		red_length = red_length - stride / 2;
+		red_length = red_length - ( stride + 1 ) / 2;
 		if (stride == 1) {
 			break;
 		}
