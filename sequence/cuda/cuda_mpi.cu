@@ -155,7 +155,7 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
 	// Write the result from thread 0 to global memory
 	if (tid == 0) {
 		printf("RESULT = %d\n", shared_data[0]);
-		d_total_matches = shared_data[0];
+		d_total_matches[0] = shared_data[0];
 	}
 }
 
