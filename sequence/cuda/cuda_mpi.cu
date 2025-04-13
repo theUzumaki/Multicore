@@ -103,6 +103,32 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	}
 }
 
+__global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, int length) {
+	extern shared int all_matches[];
+
+	int tid = threadIdx.x;
+	int global_idx = blockIdx.x * blockDim.x + tid;
+
+	if (global_idx < length) {
+		all_matches[tid] = d_block_pat_matches[global_idx];
+	} else {
+		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
+	}
+	__syncthreads();
+
+	// Perform binary tree reduction
+	for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+		if (tid < stride) {
+			all_matches[tid] += all_matches[tid + stride];
+		}
+		__syncthreads();
+	}
+
+	if (threadIdx.x == 0) {
+		d_block_pat_matches[blockIdx.x] = all_matches[0];
+	}	
+}
+
 __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int length) {
     extern __shared__ int shared_data[];
 
@@ -126,7 +152,7 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
 
 	// Write the result from thread 0 to global memory
 	if (tid == 0) {
-		atomicAdd(d_total_matches, shared_data[0]);
+		atomicAdd(d_total_matches[blockIdx.x], shared_data[0]);
 	}
 }
 
@@ -563,23 +589,29 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) * blocks_per_grid ) );
 	int *d_total_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_total_matches, sizeof(int) ) );
-	int *local_total_matches = (int *)malloc( sizeof(int) * blocks_per_grid );
 
 	// Launch the search_patterns kernel
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
-	CUDA_CHECK_FUNCTION( cudaMemcpy( local_total_matches, d_pat_matches, sizeof(int) * blocks_per_grid, cudaMemcpyDeviceToHost ) );
-printf("RESULT:");
-for( ind=0; ind<pat_per_proc; ind++ ) {
-		printf( " %d", local_total_matches[ind] );
-	}
-	printf("\n");
+
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
-	printf("USED: %d blocks, %d threads\n", blocks_per_grid, threads_per_block);
-	printf("REDUCED: %d blocks, %d threads\n", blocks_per_grid_reduction, threads_per_block_reduction);
 
-	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_total_matches, blocks_per_grid);
+	int *d_pat_reduction;
+	int length_pat_matches = blocks_per_grid
+	while (blocks_per_grid_reduction > 1) {
+		CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_reduction, sizeof(int) * blocks_per_grid_reduction ) );
+		partial_reduce<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_pat_reduction, length_pat_matches);
+		CUDA_CHECK_KERNEL();
+		length_pat_matches = blocks_per_grid_reduction;
+		blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
+
+		// Exchanging old block reduction with new one
+		CUDA_CHECK_FUNCTION( cudaFree(d_pat_matches) );
+		d_pat_matches = d_pat_reduction;
+	}
+
+	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_total_matches, length_pat_matches);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
