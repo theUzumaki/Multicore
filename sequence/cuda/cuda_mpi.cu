@@ -90,7 +90,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	}
 	__syncthreads();
 
-	for (int stride = blockDim.x  / 2; stride > 0; stride /= 2) {
+	for (int stride = ( blockDim.x + 1 ) / 2; stride > 0; stride /= 2) {
 		if (threadIdx.x < stride) {
 			all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
 		}
@@ -117,7 +117,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	__syncthreads();
 
 	// Perform binary tree reduction
-	for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+	for (int stride = ( blockDim.x + 1 ) / 2; stride > 0; stride /= 2) {
 		if (tid < stride) {
 			all_matches[tid] += all_matches[tid + stride];
 		}
@@ -143,7 +143,7 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
     __syncthreads();
 
     // Perform binary tree reduction
-    for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+    for (int stride = ( blockDim.x + 1 ) / 2; stride > 0; stride /= 2) {
         if (tid < stride) {
 			printf("shared_data[%d] = %d + %d\n", tid, shared_data[tid], shared_data[tid + stride]);
             shared_data[tid] += shared_data[tid + stride];
