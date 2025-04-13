@@ -566,6 +566,7 @@ int main(int argc, char *argv[]) {
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
 	printf("USED: %d blocks, %d threads\n", blocks_per_grid, threads_per_block);
+	printf("REDUCED: %d blocks, %d threads\n", blocks_per_grid_reduction, threads_per_block_reduction);
 
 	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, blocks_per_grid * sizeof(int)>>>(d_pat_matches, d_total_matches, blocks_per_grid);
 	CUDA_CHECK_KERNEL();
