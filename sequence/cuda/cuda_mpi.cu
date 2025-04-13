@@ -104,7 +104,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 }
 
 __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, int length) {
-	extern shared int all_matches[];
+	extern __shared__ int all_matches[];
 
 	int tid = threadIdx.x;
 	int global_idx = blockIdx.x * blockDim.x + tid;
