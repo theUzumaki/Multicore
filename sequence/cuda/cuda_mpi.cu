@@ -58,6 +58,7 @@ double cp_Wtime(){
 __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned long *d_pat_length, int *d_block_pat_matches, unsigned long *d_pat_found, int *d_seq_matches, int pat_number, unsigned long seq_length) {
 	int pat = blockIdx.x * blockDim.x + threadIdx.x;
 	extern __shared__ int all_matches[];
+
 	if (threadIdx.x < blockDim.x) {
 		all_matches[threadIdx.x] = 0;
 	}
@@ -107,15 +108,12 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
 
     int tid = threadIdx.x;
 	int global_idx = blockIdx.x * blockDim.x + tid;
-	
+
 	if (global_idx < length) {
 		shared_data[tid] = d_block_pat_matches[global_idx];
 	} else {
 		shared_data[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
-    if (global_idx < length) {
-        shared_data[tid] = d_block_pat_matches[global_idx];
-    }
     __syncthreads();
 
     // Perform binary tree reduction
@@ -569,7 +567,12 @@ int main(int argc, char *argv[]) {
 	// Launch the search_patterns kernel
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
-
+	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
+printf("RESULT:")
+for( ind=0; ind<pat_per_proc; ind++ ) {
+		printf( " %lu", local_pat_found[ind] );
+	}
+	printf("\n");
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
 	printf("USED: %d blocks, %d threads\n", blocks_per_grid, threads_per_block);
