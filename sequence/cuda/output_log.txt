@@ -67,20 +67,24 @@ Execution times: [0.481256, 0.496221, 0.409805, 0.405396]
 Average time: 0.4481695 seconds
 Median time: 0.4455305 seconds
 
+- REDUCTION MULTI KERNEL
 Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
 Number of runs: 4
 Execution times: [0.417799, 0.498985, 0.479127, 0.512968]
 Average time: 0.47721975 seconds
 Median time: 0.48905600000000005 seconds
 
+FAILED
 Input: srun ./align_m_c 1000000 0.35 0.2 0.25 0 0 0 10000 9000 9000 50 100 M 4353435
 Number of runs: 4
 Execution times: [1.589004, 1.879971, 1.606062, 1.858789]
 Average time: 1.7334565 seconds
 Median time: 1.7324255000000002 seconds
 
+FAILED
 Input: srun ./align_m_c 100000 0.35 0.2 0.25 0 0 0 100000 9000 9000 50 100 M 4353435
 Number of runs: 4
 Execution times: [0.45599, 0.386477, 0.380792, 0.450005]
 Average time: 0.418316 seconds
 Median time: 0.418241 seconds
+

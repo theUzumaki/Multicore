@@ -108,8 +108,6 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
     // Load data into shared memory
     if (global_idx < length) {
         shared_data[tid] = d_block_pat_matches[global_idx];
-    } else {
-        shared_data[tid] = 0; // Handle out-of-bounds threads
     }
     __syncthreads();
 
@@ -552,7 +550,7 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaHostUnregister(pat_length + start_pat) );
 	
 	/* 8. Launch CUDA kernel */
-	int threads_per_block = 128;
+	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
 	int shared_mem_size = threads_per_block * sizeof(int);
 
@@ -564,8 +562,11 @@ int main(int argc, char *argv[]) {
 	// Launch the search_patterns kernel
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
+
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
+	printf("USED: %d blocks, %d threads\n", blocks_per_grid, threads_per_block);
+
 	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, blocks_per_grid * sizeof(int)>>>(d_pat_matches, d_total_matches, blocks_per_grid);
 	CUDA_CHECK_KERNEL();
 
