@@ -58,7 +58,10 @@ double cp_Wtime(){
 __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned long *d_pat_length, int *d_block_pat_matches, unsigned long *d_pat_found, int *d_seq_matches, int pat_number, unsigned long seq_length) {
 	int pat = blockIdx.x * blockDim.x + threadIdx.x;
 	extern __shared__ int all_matches[];
-	all_matches[threadIdx.x] = 0;
+	if (threadIdx.x < blockDim.x) {
+		all_matches[threadIdx.x] = 0;
+	}
+	__syncthreads();
 	if (pat >= pat_number) return;
 
 	unsigned long start, lind;
@@ -103,9 +106,11 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
     extern __shared__ int shared_data[];
 
     int tid = threadIdx.x;
-    int global_idx = blockIdx.x * blockDim.x + tid;
-
-    // Load data into shared memory
+	if (global_idx < length) {
+		shared_data[tid] = d_block_pat_matches[global_idx];
+	} else {
+		shared_data[tid] = 0;
+	}
     if (global_idx < length) {
         shared_data[tid] = d_block_pat_matches[global_idx];
     }
