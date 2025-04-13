@@ -568,7 +568,7 @@ int main(int argc, char *argv[]) {
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
-printf("RESULT:")
+printf("RESULT:");
 for( ind=0; ind<pat_per_proc; ind++ ) {
 		printf( " %lu", local_pat_found[ind] );
 	}
