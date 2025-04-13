@@ -86,7 +86,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	}
 	__syncthreads();
 
-	for (int stride = ( blockDim.x + 1 ) / 2; stride > 0; stride /= 2) {
+	for (int stride = blockDim.x  / 2; stride > 0; stride /= 2) {
 		if (threadIdx.x < stride) {
 			all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
 		}
@@ -568,7 +568,7 @@ int main(int argc, char *argv[]) {
 	printf("USED: %d blocks, %d threads\n", blocks_per_grid, threads_per_block);
 	printf("REDUCED: %d blocks, %d threads\n", blocks_per_grid_reduction, threads_per_block_reduction);
 
-	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, blocks_per_grid * sizeof(int)>>>(d_pat_matches, d_total_matches, blocks_per_grid);
+	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_total_matches, blocks_per_grid);
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
