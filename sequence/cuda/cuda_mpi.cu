@@ -106,10 +106,12 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
     extern __shared__ int shared_data[];
 
     int tid = threadIdx.x;
+	int global_idx = blockIdx.x * blockDim.x + tid;
+	
 	if (global_idx < length) {
 		shared_data[tid] = d_block_pat_matches[global_idx];
 	} else {
-		shared_data[tid] = 0;
+		shared_data[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
     if (global_idx < length) {
         shared_data[tid] = d_block_pat_matches[global_idx];
