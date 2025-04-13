@@ -143,13 +143,15 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
     __syncthreads();
 
     // Perform binary tree reduction
-    for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = (stride + 1) / 2) {
-        if (tid + stride < blockDim.x) {
+	int red_length = blockDim.x;
+    for (int stride = (red_length + 1) / 2; stride > 0; stride = (stride + 1) / 2) {
+        if (tid + stride < red_length) {
 			printf("shared_data[%d] = %d + %d\n", tid, shared_data[tid], shared_data[tid + stride]);
             shared_data[tid] += shared_data[tid + stride];
 			printf("shared_data[%d] = %d\n", tid, shared_data[tid]);
         }
         __syncthreads();
+		red_length = tid + stride
 		if (stride == 1) {
 			break;
 		}
