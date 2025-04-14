@@ -132,14 +132,14 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	if (tid == 0) printf("BLOCK NUMBER %d has red_length = %d\n", blockid, red_length);
 	if (global_idx == 0) printf("BLOCK NUMBER %d has red_length = %d\n", 0, red_length);
 	for (int stride = (red_length + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
-		if (tid == 0) {
+		if (global_idx == 0) {
 			printf("Stride = %d, red_length = %d\n", stride, red_length);
 		}
 		if (tid + stride < red_length) {
 			printf("all_matches[%d/%d] = %d + %d\n", tid, global_idx, all_matches[tid], all_matches[tid + stride]);
 			all_matches[tid] += all_matches[tid + stride];
 		}
-		if (tid == 0) {
+		if (global_idx == 0) {
 			printf("----\n");
 		}
 		red_length = stride;
@@ -629,22 +629,6 @@ int main(int argc, char *argv[]) {
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
-	// Print all elements inside d_pat_matches
-	int *h_pat_matches = (int *)malloc(sizeof(int) * blocks_per_grid);
-	if (h_pat_matches == NULL) {
-		fprintf(stderr, "\n-- Error allocating host memory for d_pat_matches\n");
-		exit(EXIT_FAILURE);
-	}
-	CUDA_CHECK_FUNCTION(cudaMemcpy(h_pat_matches, d_pat_matches, sizeof(int) * blocks_per_grid, cudaMemcpyDeviceToHost));
-
-	/*
-	printf("\nElements in d_pat_matches:\n");
-	for (int i = 0; i < blocks_per_grid; i++) {
-		printf("d_pat_matches[%d] = %d\n", i, h_pat_matches[i]);
-	}
-	printf("\n");
-	*/
-
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
 
@@ -661,14 +645,6 @@ int main(int argc, char *argv[]) {
 		// Exchanging old block reduction with new one
 		CUDA_CHECK_FUNCTION( cudaFree(d_pat_matches) );
 		d_pat_matches = d_pat_reduction;
-		
-		CUDA_CHECK_FUNCTION(cudaMemcpy(h_pat_matches, d_pat_matches, sizeof(int) * blocks_per_grid_reduction, cudaMemcpyDeviceToHost));
-		
-		printf("\nElements in d_pat_matches:\n");
-		for (int i = 0; i < blocks_per_grid_reduction; i++) {
-			printf("d_pat_matches[%d] = %d\n", i, h_pat_matches[i]);
-		}
-		printf("\n");
 
 		length_pat_matches = blocks_per_grid_reduction;
 		if (blocks_per_grid_reduction == 1) {
