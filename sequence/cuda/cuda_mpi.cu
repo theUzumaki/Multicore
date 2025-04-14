@@ -125,7 +125,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	// Perform binary tree reduction
 	int red_length = upper_limit;
 	printf("THREAD %d/%d HAS VALUE: %d\n", tid, global_idx, all_matches[tid]);
-	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
+	for (int stride = (red_length + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (tid + stride < red_length) {
 			printf("all_matches[%d/%d] = %d + %d\n", tid, global_idx, all_matches[tid], all_matches[tid + stride]);
 			all_matches[tid] += all_matches[tid + stride];
