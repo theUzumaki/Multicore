@@ -146,10 +146,11 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
 	int red_length = blockDim.x;
     for (int stride = (red_length + 1) / 2; stride > 0; stride = (stride + 1) / 2) {
         if (tid + stride < red_length) {
+			printf("stride = %d, tid = %d, red_length", stride, tid, red_length);
 			printf("shared[%d] => %d = %d + %d\n", tid, shared_data[tid] + shared_data[tid + stride], shared_data[tid], shared_data[tid + stride]);
             shared_data[tid] += shared_data[tid + stride];
         }
-		printf("\n");
+		printf("\n ------ \n");
         __syncthreads();
 		red_length = red_length - ( stride + 1 ) / 2;
 		if (stride == 1) {
