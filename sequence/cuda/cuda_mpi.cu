@@ -91,7 +91,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	__syncthreads();
 
 	int red_length = blockDim.x;
-	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = ( stride + 1 ) = 2) {
+	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (threadIdx.x + stride < blockDim.x) {
 			all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
 		}
@@ -122,7 +122,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 
 	// Perform binary tree reduction
 	int red_length = blockDim.x;
-	for (int stride = (blockDim.x + 1) / 2; stride > 0; ( stride + 1 ) /= 2) {
+	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (tid + stride < red_length) {
 			all_matches[tid] += all_matches[tid + stride];
 		}
