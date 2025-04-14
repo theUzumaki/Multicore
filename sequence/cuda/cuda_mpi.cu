@@ -631,11 +631,13 @@ int main(int argc, char *argv[]) {
 	}
 	CUDA_CHECK_FUNCTION(cudaMemcpy(h_pat_matches, d_pat_matches, sizeof(int) * blocks_per_grid, cudaMemcpyDeviceToHost));
 
+	/*
 	printf("\nElements in d_pat_matches:\n");
 	for (int i = 0; i < blocks_per_grid; i++) {
 		printf("d_pat_matches[%d] = %d\n", i, h_pat_matches[i]);
 	}
 	printf("\n");
+	*/
 
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
