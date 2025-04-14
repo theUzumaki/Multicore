@@ -114,7 +114,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	int global_idx = blockIdx.x * blockDim.x + tid;
 	int upper_limit = length - blockDim.x * blockIdx.x;
 
-	if (global_idx < upper_limit) {
+	if (global_idx < length) {
 		all_matches[tid] = d_block_pat_matches[global_idx];
 	} else {
 		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
@@ -123,7 +123,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	if (tid >= upper_limit) return;
 
 	// Perform binary tree reduction
-	int red_length = blockDim.x;
+	int red_length = upper_limit;
 	printf("THREAD %d/%d HAS VALUE: %d\n", tid, global_idx, all_matches[tid]);
 	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (tid + stride < red_length) {
