@@ -90,11 +90,14 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	}
 	__syncthreads();
 
-	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride /= 2) {
+	for (int stride = (blockDim.x + 1) / 2; stride > 0; ( stride + 1 ) /= 2) {
 		if (threadIdx.x + stride < blockDim.x) {
 			all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
 		}
-
+		red_length = stride;
+		if (stride == 1) {
+			break;
+		}
 		__syncthreads();
 	}
 
@@ -117,9 +120,14 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	__syncthreads();
 
 	// Perform binary tree reduction
-	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride /= 2) {
-		if (tid + stride < blockDim.x) {
+	int red_length = blockDim.x;
+	for (int stride = (blockDim.x + 1) / 2; stride > 0; ( stride + 1 ) /= 2) {
+		if (tid + stride < red_length) {
 			all_matches[tid] += all_matches[tid + stride];
+		}
+		red_length = stride;
+		if (stride == 1) {
+			break;
 		}
 		__syncthreads();
 	}
@@ -145,12 +153,11 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
     // Perform binary tree reduction
 	int red_length = blockDim.x;
     for (int stride = (red_length + 1) / 2; stride > 0; stride = (stride + 1) / 2) {
-		if (tid == 0) printf("stride = %d, tid = %d, red_length = %d\n", stride, tid, red_length);
+		
         if (tid + stride < red_length) {
-			printf("shared[%d] => %d = %d + %d\n", tid, shared_data[tid] + shared_data[tid + stride], shared_data[tid], shared_data[tid + stride]);
             shared_data[tid] += shared_data[tid + stride];
         }
-//	196 / 391 - 98 / 293
+//	196 / 391 - 98 / 196 - 49 / 98 - 25 / 49 - 13 / 25 - 7 / 13 - 4 / 7 - 2 / 4 - 1 / 2
         __syncthreads();
 		red_length = stride;
 		if (stride == 1) {
