@@ -147,7 +147,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	if (threadIdx.x == 0) {
 		printf("COMPLETING...\n");
 		printf("d_block_pat_matches[%d] = %d\n", blockIdx.x, all_matches[0]);
-		d_total_pat_matches[blockIdx.x] = all_matches[0];
+		d_total_matches[blockIdx.x] = all_matches[0];
 	}	
 }
 
