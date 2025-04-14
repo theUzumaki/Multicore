@@ -623,8 +623,6 @@ int main(int argc, char *argv[]) {
 		printf("d_pat_matches[%d] = %d\n", i, h_pat_matches[i]);
 	}
 
-	free(h_pat_matches);
-
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
 
@@ -648,8 +646,8 @@ int main(int argc, char *argv[]) {
 			printf("d_pat_matches[%d] = %d\n", i, h_pat_matches[i]);
 		}
 	
-		free(h_pat_matches);
 	}
+	free(h_pat_matches);
 
 	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_total_matches, length_pat_matches);
 	CUDA_CHECK_KERNEL();
