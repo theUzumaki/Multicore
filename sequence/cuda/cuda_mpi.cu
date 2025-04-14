@@ -116,23 +116,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 
 	if (global_idx < length) {
 		if (blockIdx.x == 0) {
-			__shared__ bool all_success;
-			if (threadIdx.x == 0) {
-				all_success = true;
-			}
-			__syncthreads();
-
-			if (global_idx < length) {
-				atomicAnd(&all_success, d_block_pat_matches[global_idx] >= 0);
-			}
-			if (threadIdx.x == 0) {
-				printf("BEFORE\n");
-			}
-			__syncthreads();
-
-			if (threadIdx.x == 0 && !all_success) {
-				printf("Block 0: Not all threads succeeded in allocation.\n");
-			}
+			printf("d_block_pat_matches[%d] = %d\n", global_idx, d_block_pat_matches[global_idx]);
 		}
 		all_matches[tid] = d_block_pat_matches[global_idx];
 	} else {
