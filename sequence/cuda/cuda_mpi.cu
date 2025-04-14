@@ -113,9 +113,13 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	int tid = threadIdx.x;
 	int global_idx = blockIdx.x * blockDim.x + tid;
 	int upper_limit = length - blockDim.x * blockIdx.x;
-
+	if (tid == 0) {
+		printf("BLOCK NUMBER %d has upper_limit = %d\n", blockIdx.x, upper_limit);
+	}
 	if (global_idx < length) {
+		if (tid == 0) printf("BEFORE\n");
 		all_matches[tid] = d_block_pat_matches[global_idx];
+		if (tid == 0) printf("BEFORE\n");
 	} else {
 		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
