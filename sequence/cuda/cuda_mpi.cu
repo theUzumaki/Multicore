@@ -168,7 +168,7 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
 
 	// Write the result from thread 0 to global memory
 	if (tid == 0) {
-		d_total_matches[0] = shared_data[0];
+		d_total_matches[blockDim.x] = shared_data[0];
 	}
 }
 
@@ -645,7 +645,6 @@ int main(int argc, char *argv[]) {
 		for (int i = 0; i < blocks_per_grid; i++) {
 			printf("d_pat_matches[%d] = %d\n", i, h_pat_matches[i]);
 		}
-	
 	}
 	free(h_pat_matches);
 
