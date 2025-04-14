@@ -630,6 +630,8 @@ int main(int argc, char *argv[]) {
 	int *d_pat_reduction;
 	int length_pat_matches = blocks_per_grid;
 	while (blocks_per_grid_reduction > 1) {
+		printf("blocks_per_grid_reduction = %d length_pat_matches = %d\n", blocks_per_grid_reduction, length_pat_matches);
+		printf("INSIDE LOOP\n");
 		CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_reduction, sizeof(int) * blocks_per_grid_reduction ) );
 		partial_reduce<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_pat_reduction, length_pat_matches);
 		CUDA_CHECK_KERNEL();
@@ -643,7 +645,7 @@ int main(int argc, char *argv[]) {
 		CUDA_CHECK_FUNCTION(cudaMemcpy(h_pat_matches, d_pat_matches, sizeof(int) * blocks_per_grid_reduction, cudaMemcpyDeviceToHost));
 
 		printf("\nElements in d_pat_matches:\n");
-		for (int i = 0; i < blocks_per_grid; i++) {
+		for (int i = 0; i < blocks_per_grid_reduction; i++) {
 			printf("d_pat_matches[%d] = %d\n", i, h_pat_matches[i]);
 		}
 	}
