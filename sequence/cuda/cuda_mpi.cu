@@ -653,7 +653,6 @@ int main(int argc, char *argv[]) {
 
 		blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
 	}
-	free(h_pat_matches);
 
 	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_total_matches, length_pat_matches);
 	CUDA_CHECK_KERNEL();
