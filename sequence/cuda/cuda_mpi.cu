@@ -121,11 +121,11 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
 	if (tid == 0) printf("2 BLOCK %d\n", blockIdx.x);
-	if (tid == 1023 && global_idx == 0) printf("1023\n");
-	if (tid == 1030 && global_idx == 0) printf("1030\n");
+	if (tid == 1023 && blockIdx.x == 0) printf("1023\n");
+	if (tid == 1030 && blockIdx.x == 0) printf("1030\n");
 	__syncthreads();
-	if (tid == 1023 && global_idx == 0) printf("1023\n");
-	if (tid == 1030 && global_idx == 0) printf("1030\n");
+	if (tid == 1023 && blockIdx.x == 0) printf("1023\n");
+	if (tid == 1030 && blockIdx.x == 0) printf("1030\n");
 	if (tid == 0) printf("3 BLOCK %d\n", blockIdx.x);
 	if (tid >= upper_limit) return;
 	if (tid == 0) printf("4 BLOCK %d\n", blockIdx.x);
