@@ -123,8 +123,8 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	
 	__syncthreads();
 	if (blockIdx.x == 0) {
-		printf("BLOCK HEREEEEEE\n");
-		if (tid == 0) {
+		printf("%d\n", threadIdx.x);
+		if (threadIdx.x == 0) {
 			printf("Thread %d, block %d, global_idx %d, upper_limit %d\n", tid, blockIdx.x, global_idx, upper_limit);
 		}
 	}
