@@ -115,14 +115,15 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	int upper_limit = length - blockDim.x * blockIdx.x;
 
 	if (global_idx < length) {
-		if (blockIdx.x == 0) {
-			printf("d_block_pat_matches[%d] = %d\n", global_idx, d_block_pat_matches[global_idx]);
-		}
 		all_matches[tid] = d_block_pat_matches[global_idx];
+		
 	} else {
 		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
 	
+	if (blockIdx.x == 0) {
+		printf("d_block_pat_matches[%d] = %d\n", global_idx, d_block_pat_matches[global_idx]);
+	}
 	if (tid >= upper_limit) return;
 	__syncthreads();
 
