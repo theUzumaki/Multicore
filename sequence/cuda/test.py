@@ -6,6 +6,7 @@ def check_indices_in_limbo(file_path):
             lines = file.readlines()
             indices = set(int(line.strip().split('=')[0].split('[')[1].split(']')[0]) for line in lines if 'd_block_pat_matches[' in line and '=' in line)
         
+        print(f"Found {len(indices)} indices in the file.")
         missing_indices = [i for i in range(1024) if i not in indices]
         
         if not missing_indices:
@@ -18,4 +19,4 @@ def check_indices_in_limbo(file_path):
         print("File contains invalid data.")
 
 # Replace 'limbo.txt' with the actual path to your file
-check_indices_in_limbo('limbo.txt')
+check_indices_in_limbo('sequence/cuda/limbo.txt')

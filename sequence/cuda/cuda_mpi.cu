@@ -121,11 +121,11 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
 	
+	__syncthreads();
 	if (blockIdx.x == 0) {
 		printf("d_block_pat_matches[%d] = %d\n", global_idx, d_block_pat_matches[global_idx]);
 	}
 	if (tid >= upper_limit) return;
-	__syncthreads();
 
 	// Perform binary tree reduction
 	int red_length = upper_limit;
