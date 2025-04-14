@@ -4,7 +4,7 @@ def check_indices_in_limbo(file_path):
     try:
         with open(file_path, 'r') as file:
             lines = file.readlines()
-            indices = set(int(line.strip().split('=')[0].split('[')[1].split(']')[0]) for line in lines if 'd_block_pat_matches[' in line and '=' in line)
+            indices = set(int(line.strip()) for line in lines if line.strip().isdigit())
         
         print(f"Found {len(indices)} indices in the file.")
         missing_indices = [i for i in range(1024) if i not in indices]
