@@ -114,21 +114,15 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	int global_idx = blockIdx.x * blockDim.x + tid;
 	int upper_limit = length - blockDim.x * blockIdx.x;
 
-	if (tid == 0) printf("1 BLOCK %d\n", blockIdx.x);
 	if (global_idx < length) {
 		all_matches[tid] = d_block_pat_matches[global_idx];
 	} else {
 		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
-	if (tid == 0) printf("2 BLOCK %d\n", blockIdx.x);
-	if (tid == 1023 && blockIdx.x == 0) printf("1023\n");
-	if (tid == 1030 && blockIdx.x == 0) printf("1030\n");
-	__syncthreads();
-	if (tid == 1023 && blockIdx.x == 0) printf("1023\n");
-	if (tid == 1030 && blockIdx.x == 0) printf("1030\n");
-	if (tid == 0) printf("3 BLOCK %d\n", blockIdx.x);
+	
+	
 	if (tid >= upper_limit) return;
-	if (tid == 0) printf("4 BLOCK %d\n", blockIdx.x);
+	__syncthreads();
 	// Perform binary tree reduction
 	int red_length = upper_limit;
 	if (tid == 0) printf("BLOCK NUMBER %d has red_length = %d\n", blockIdx.x, red_length);
@@ -656,6 +650,7 @@ int main(int argc, char *argv[]) {
 		printf("INSIDE LOOP\n");
 		CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_reduction, sizeof(int) * blocks_per_grid_reduction ) );
 		partial_reduce<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_pat_reduction, length_pat_matches);
+		cudaDeviceSynchronize();
 		CUDA_CHECK_KERNEL();
 		
 		// Exchanging old block reduction with new one
