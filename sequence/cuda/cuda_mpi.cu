@@ -158,7 +158,7 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
         if (tid + stride < red_length) {
             shared_data[tid] += shared_data[tid + stride];
         }
-//	196 / 391 - 98 / 196 - 49 / 98 - 25 / 49 - 13 / 25 - 7 / 13 - 4 / 7 - 2 / 4 - 1 / 2
+		
         __syncthreads();
 		red_length = stride;
 		if (stride == 1) {
@@ -613,17 +613,6 @@ int main(int argc, char *argv[]) {
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
 
-	int *h_pat_matches = (int *)malloc(sizeof(int) * blocks_per_grid);
-	CUDA_CHECK_FUNCTION(cudaMemcpy(h_pat_matches, d_pat_matches, sizeof(int) * blocks_per_grid, cudaMemcpyDeviceToHost));
-
-	printf("d_pat_matches:\n");
-	for (int i = 0; i < blocks_per_grid; i++) {
-		printf("%d ", h_pat_matches[i]);
-	}
-	printf("\n");
-
-	free(h_pat_matches);
-
 	int *d_pat_reduction;
 	int length_pat_matches = blocks_per_grid;
 	while (blocks_per_grid_reduction > 1) {
@@ -636,16 +625,6 @@ int main(int argc, char *argv[]) {
 		// Exchanging old block reduction with new one
 		CUDA_CHECK_FUNCTION( cudaFree(d_pat_matches) );
 		d_pat_matches = d_pat_reduction;
-
-		CUDA_CHECK_FUNCTION(cudaMemcpy(h_pat_matches, d_pat_matches, sizeof(int) * blocks_per_grid, cudaMemcpyDeviceToHost));
-
-		printf("d_pat_matches:\n");
-		for (int i = 0; i < blocks_per_grid; i++) {
-			printf("%d ", h_pat_matches[i]);
-		}
-		printf("\n");
-	
-		free(h_pat_matches);
 	}
 
 	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_total_matches, length_pat_matches);
