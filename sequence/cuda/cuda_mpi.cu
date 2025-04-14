@@ -639,7 +639,7 @@ int main(int argc, char *argv[]) {
 		CUDA_CHECK_FUNCTION( cudaFree(d_pat_matches) );
 		d_pat_matches = d_pat_reduction;
 
-		CUDA_CHECK_FUNCTION(cudaMemcpy(h_pat_matches, d_pat_matches, sizeof(int) * blocks_per_grid, cudaMemcpyDeviceToHost));
+		CUDA_CHECK_FUNCTION(cudaMemcpy(h_pat_matches, d_pat_matches, sizeof(int) * blocks_per_grid_reduction, cudaMemcpyDeviceToHost));
 
 		printf("\nElements in d_pat_matches:\n");
 		for (int i = 0; i < blocks_per_grid; i++) {
