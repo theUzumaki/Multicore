@@ -90,7 +90,8 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	}
 	__syncthreads();
 
-	for (int stride = (blockDim.x + 1) / 2; stride > 0; ( stride + 1 ) /= 2) {
+	int red_length = blockDim.x;
+	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = ( stride + 1 ) = 2) {
 		if (threadIdx.x + stride < blockDim.x) {
 			all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
 		}
