@@ -122,6 +122,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	}
 	
 	__syncthreads();
+	printf("Thread %d, global_idx %d, upper_limit %d\n", tid, global_idx, upper_limit);
 	if (tid >= upper_limit) return;
 	
 	// Perform binary tree reduction
