@@ -115,14 +115,33 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	int upper_limit = length - blockDim.x * blockIdx.x;
 
 	if (global_idx < length) {
+		if (blockIdx.x == 0) {
+			__shared__ bool all_success;
+			if (threadIdx.x == 0) {
+				all_success = true;
+			}
+			__syncthreads();
+
+			if (global_idx < length) {
+				atomicAnd(&all_success, d_block_pat_matches[global_idx] >= 0);
+			}
+			if (threadIdx.x == 0) {
+				printf("BEFORE\n");
+			}
+			__syncthreads();
+
+			if (threadIdx.x == 0 && !all_success) {
+				printf("Block 0: Not all threads succeeded in allocation.\n");
+			}
+		}
 		all_matches[tid] = d_block_pat_matches[global_idx];
 	} else {
 		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
 	
-	
 	if (tid >= upper_limit) return;
 	__syncthreads();
+
 	// Perform binary tree reduction
 	int red_length = upper_limit;
 	if (tid == 0) printf("BLOCK NUMBER %d has red_length = %d\n", blockIdx.x, red_length);
