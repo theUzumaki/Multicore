@@ -112,6 +112,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 
 	int tid = threadIdx.x;
 	int global_idx = blockIdx.x * blockDim.x + tid;
+	int blockid = blockIdx.x;
 	int upper_limit = length - blockDim.x * blockIdx.x;
 
 	if (global_idx < length) {
@@ -127,9 +128,8 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	
 	// Perform binary tree reduction
 	int red_length = upper_limit;
-	printf("THREAD %d GLOBAL %d\n", tid, global_idx);
-	if (global_idx == 0) printf("BLOCK NUMBER %d has red_length = %d\n", 0, red_length);
-	if (tid == 0) printf("BLOCK NUMBER %d has red_length = %d\n", blockIdx.x, red_length);
+	
+	if (tid == 0) printf("BLOCK NUMBER %d has red_length = %d\n", blockid, red_length);
 	for (int stride = (red_length + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (tid == 0) {
 			printf("Stride = %d, red_length = %d\n", stride, red_length);
@@ -150,8 +150,8 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 
 	if (threadIdx.x == 0) {
 		printf("COMPLETING...\n");
-		printf("d_block_pat_matches[%d] = %d\n", blockIdx.x, all_matches[0]);
-		d_total_matches[blockIdx.x] = all_matches[0];
+		printf("d_block_pat_matches[%d] = %d\n", blockid, all_matches[0]);
+		d_total_matches[blockid] = all_matches[0];
 	}	
 }
 
