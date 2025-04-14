@@ -117,9 +117,9 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 		printf("BLOCK NUMBER %d has upper_limit = %d\n", blockIdx.x, upper_limit);
 	}
 	if (global_idx < length) {
-		if (tid == 0) printf("BEFORE\n");
+		if (tid == 0) printf("BEFORE BLOCK %d\n", blockIdx.x);
 		all_matches[tid] = d_block_pat_matches[global_idx];
-		if (tid == 0) printf("BEFORE\n");
+		if (tid == 0) printf("AFTER BLOCK %d\n", blockIdx.x);
 	} else {
 		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
 	}
