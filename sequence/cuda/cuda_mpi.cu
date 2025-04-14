@@ -122,7 +122,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	}
 	
 	__syncthreads();
-	printf("THREAD %d\n", tid);
+	printf("THREAD %d GLOBAL %d\n", tid, global_idx);
 	if (threadIdx.x == 0) printf("Thread %d, global_idx %d, upper_limit %d\n", tid, global_idx, upper_limit);
 	if (threadIdx.x >= upper_limit) return;
 	if (threadIdx.x == 0) printf("Thread %d, global_idx %d, upper_limit %d\n", tid, global_idx, upper_limit);
