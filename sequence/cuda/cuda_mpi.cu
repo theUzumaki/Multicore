@@ -600,8 +600,6 @@ printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduc
 			
 			CUDA_CHECK_FUNCTION( cudaFree(d_block_seq_matches) );
 			d_block_seq_matches = d_seq_matches_reduction;
-			
-			CUDA_CHECK_FUNCTION(cudaMemcpy(h_block_seq_matches, d_block_seq_matches, sizeof(int) * seq_length * blocks_per_grid, cudaMemcpyDeviceToHost));
 
 			if (blocks_per_grid_reduction == 1) {
 				break;
