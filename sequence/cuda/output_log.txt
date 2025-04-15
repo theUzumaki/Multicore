@@ -94,3 +94,27 @@ Number of runs: 4
 Execution times: [0.243722, 0.252417, 0.26337, 0.231256]
 Average time: 0.24769125 seconds
 Median time: 0.2480695 seconds
+
+Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
+Number of runs: 4
+Execution times: [0.497402, 0.512503, 0.501369, 0.432161]
+Average time: 0.48585875 seconds
+Median time: 0.4993855 seconds
+
+Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
+Number of runs: 4
+Execution times: [0.372009, 0.461207, 0.393109, 0.453396]
+Average time: 0.41993025 seconds
+Median time: 0.42325250000000003 seconds
+
+Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
+Number of runs: 4
+Execution times: [0.374715, 0.452595, 0.48074, 0.464777]
+Average time: 0.44320675 seconds
+Median time: 0.45868600000000004 seconds
+
+Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
+Number of runs: 4
+Execution times: [0.47942, 0.470589, 0.455089, 0.403223]
+Average time: 0.45208025 seconds
+Median time: 0.462839 seconds
