@@ -104,3 +104,5 @@ Number of runs: 4
 Execution times: [0.652446, 0.554097, 0.613127, 0.628231]
 Average time: 0.61197525 seconds
 Median time: 0.620679 seconds
+
+-- TEST WITH BEST VERSION WITH NEW INPUTS
