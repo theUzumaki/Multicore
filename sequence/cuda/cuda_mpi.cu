@@ -108,7 +108,7 @@ __global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, i
 	if (global_idx >= num_blocks) return;
 	if (threadIdx.x == 0) printf("NEW BLOCK => %d\n", blockIdx.x);
 	for (int i = 0; i < seq_length; i++) {
-		if (i == 0) printf("THREAD %d PUTS %d INTO: %d, FROM: %d\n", global_idx, d_block_seq[global_idx * seq_length + i], blockIdx.x * blockDim.x + i, global_idx * seq_length + i);
+		if (i == 0) printf("THREAD %d PUTS %d INTO: %d FROM: %d\n", global_idx, d_block_seq[global_idx * seq_length + i], blockIdx.x * blockDim.x + i, global_idx * seq_length + i);
 		atomicAdd(&d_seq_reduction[blockIdx.x * blockDim.x + i], d_block_seq[global_idx * seq_length + i]);
 	}
 }
@@ -575,8 +575,6 @@ int main(int argc, char *argv[]) {
 	int *d_block_seq_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_block_seq_matches, sizeof(int) * seq_length * blocks_per_grid) );
 	CUDA_CHECK_FUNCTION( cudaMemset( d_block_seq_matches, 0, sizeof(int) * seq_length * blocks_per_grid) );
-	int *d_seq_matches;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches, sizeof(int) * seq_length ) );
 
 	int *d_pat_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) ) );
@@ -610,7 +608,7 @@ int main(int argc, char *argv[]) {
 
 	/* 9. Copy results back to host */
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found + pat_per_proc * rank, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
-	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches_reduction, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
@@ -621,7 +619,7 @@ int main(int argc, char *argv[]) {
 	/* 11. Free device memory */
 	CUDA_CHECK_FUNCTION( cudaFree(d_sequence) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_found) );
-	CUDA_CHECK_FUNCTION( cudaFree(d_seq_matches) );
+	CUDA_CHECK_FUNCTION( cudaFree(d_seq_matches_reduction) );
 	CUDA_CHECK_FUNCTION( cudaFree(d_pat_matches) );
 
 	/* 7. Check sums */
