@@ -109,7 +109,7 @@ __global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, i
 	if (global_idx >= num_blocks) return;
 	
 	for (int i = 0; i < seq_length; i++) {
-		if (global_idx == 0) printf("SEQ_REDUCTION: %d, BLOCK SEQ: %d\n", d_block_seq[global_idx], d_seq_reduction[global_idx + i]);
+		if (global_idx == 0) printf("INTO: %d, FROM: %d\n", d_seq_reduction[global_idx], d_block_seq[global_idx + i]);
 		d_seq_reduction[global_idx] += d_block_seq[global_idx + i];
 	}
 }
@@ -593,7 +593,6 @@ printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduc
 	int *d_seq_matches_reduction;
 	int length_blocks_seq_matches = blocks_per_grid;
 	while (true) {
-		printf("INSIDE LOOP\n");
 		CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches_reduction, sizeof(int) * seq_length * length_blocks_seq_matches ) );
 		reduce<<<blocks_per_grid_reduction, threads_per_block_reduction>>>(d_seq_matches_reduction, d_block_seq_matches, length_blocks_seq_matches, seq_length);
 		CUDA_CHECK_KERNEL();
