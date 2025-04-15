@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Reverted since last commit now trying to implement reduction on seq_matches"
+git commit -m "Reduction correctly implemented but seems has an awful time"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 

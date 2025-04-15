@@ -82,23 +82,6 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 			break;
 		}
 	}
-	__syncthreads();
-
-	int red_length = blockDim.x;
-	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
-		if (threadIdx.x + stride < red_length) {
-			//all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
-		}
-		red_length = stride;
-		if (stride == 1) {
-			break;
-		}
-		__syncthreads();
-	}
-
-	if (threadIdx.x == 0) {
-		//d_block_pat_matches[blockIdx.x] = all_matches[0];
-	}
 }
 
 __global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, int seq_length) {
@@ -108,42 +91,8 @@ __global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, i
 	if (global_idx >= num_blocks) return;
 	if (threadIdx.x == 0) printf("NEW BLOCK => %d\n", blockIdx.x);
 	for (int i = 0; i < seq_length; i++) {
-		if (i == 0) printf("THREAD %d PUTS %d INTO: %d FROM: %d\n", global_idx, d_block_seq[global_idx * seq_length + i], blockIdx.x * blockDim.x + i, global_idx * seq_length + i);
+		//if (i == 0) printf("THREAD %d PUTS %d INTO: %d FROM: %d\n", global_idx, d_block_seq[global_idx * seq_length + i], blockIdx.x * blockDim.x + i, global_idx * seq_length + i);
 		atomicAdd(&d_seq_reduction[blockIdx.x * blockDim.x + i], d_block_seq[global_idx * seq_length + i]);
-	}
-}
-
-__global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int length) {
-    extern __shared__ int shared_data[];
-
-    int tid = threadIdx.x;
-	int global_idx = blockIdx.x * blockDim.x + tid;
-
-	if (global_idx < length) {
-		shared_data[tid] = d_block_pat_matches[global_idx];
-	} else {
-		shared_data[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
-	}
-    __syncthreads();
-
-    // Perform binary tree reduction
-	int red_length = blockDim.x;
-    for (int stride = (red_length + 1) / 2; stride > 0; stride = (stride + 1) / 2) {
-		
-        if (tid + stride < red_length) {
-            shared_data[tid] += shared_data[tid + stride];
-        }
-		
-        __syncthreads();
-		red_length = stride;
-		if (stride == 1) {
-			break;
-		}
-    }
-
-	// Write the result from thread 0 to global memory
-	if (tid == 0) {
-		d_total_matches[blockIdx.x] = shared_data[0];
 	}
 }
 
@@ -151,6 +100,7 @@ __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int 
  * Function: Increment the number of pattern matches on the sequence positions
  * 	This function can be changed and/or optimized by the students
  */
+
 void increment_matches( int pat, unsigned long *pat_found, unsigned long *pat_length, int *seq_matches ) {
 	unsigned long ind;	
 	for( ind=0; ind<pat_length[pat]; ind++) {
@@ -599,8 +549,6 @@ int main(int argc, char *argv[]) {
 		if (blocks_per_grid_reduction == 1) {
 			break;
 		}
-
-		printf("NEW BLOCKS => %d\n", blocks_per_grid_reduction);
 		
 		length_blocks_seq_matches = blocks_per_grid_reduction;
 		blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
