@@ -131,7 +131,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	
 	if (tid == 0) printf("BLOCK NUMBER %d has red_length = %d\n", blockid, red_length);
 	if (global_idx == 0) printf("BLOCK NUMBER %d has red_length = %d\n", 0, red_length);
-	__synctreads();
+	__syncthreads();
 	for (int stride = (red_length + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (global_idx == 0) {
 			printf("Stride = %d, red_length = %d\n", stride, red_length);
