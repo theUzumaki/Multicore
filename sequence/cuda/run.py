@@ -10,7 +10,7 @@ slurm_job = "onenodeonegpu.slurm"
 result_file = "output_log.txt"
 
 # Number of runs
-n = 4  # Change this to the desired number of runs
+n = 8  # Change this to the desired number of runs
 
 # Function to submit a job and return its job ID
 def submit_job():
