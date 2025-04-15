@@ -128,24 +128,12 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	
 	// Perform binary tree reduction
 	int red_length = upper_limit;
-	
-	if (tid == 0) printf("BLOCK NUMBER %d has red_length = %d and stride = %d\n", blockid, red_length, (red_length + 1) / 2);
-	
-	__syncthreads();
 	for (int stride = (red_length + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
-		if (global_idx == 0) {
-			printf("Stride = %d, red_length = %d block %d\n", stride, red_length, blockid);
-		}
 		__syncthreads();
 		if (tid + stride < red_length) {
-			printf("all_matches[%d/%d] = %d + %d\n", tid, global_idx, all_matches[tid], all_matches[tid + stride]);
 			all_matches[tid] += all_matches[tid + stride];
 		}
-		__syncthreads();
-		if (global_idx == 0) {
-			printf("----\n");
-		}
-		__syncthreads();
+		
 		red_length = stride;
 		if (stride == 1) {
 			break;
@@ -154,8 +142,6 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	}
 
 	if (threadIdx.x == 0) {
-		printf("COMPLETING...\n");
-		printf("d_block_pat_matches[%d] = %d\n", blockid, all_matches[0]);
 		d_total_matches[blockid] = all_matches[0];
 	}	
 }
@@ -640,14 +626,12 @@ int main(int argc, char *argv[]) {
 	int length_pat_matches = blocks_per_grid;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_reduction, sizeof(int) * blocks_per_grid_reduction ) );
 	while (true) {
-		printf("blocks_per_grid_reduction = %d length_pat_matches = %d\n", blocks_per_grid_reduction, length_pat_matches);
-		printf("INSIDE LOOP\n");
+		CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_reduction, sizeof(int) * blocks_per_grid_reduction ) );
 		partial_reduce<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_pat_reduction, length_pat_matches);
-		cudaDeviceSynchronize();
 		CUDA_CHECK_KERNEL();
-		
-		cudaMemcpy(d_pat_matches, d_pat_reduction, sizeof(int) * blocks_per_grid_reduction, cudaMemcpyDeviceToDevice);
-		CUDA_CHECK_KERNEL();
+
+		CUDA_CHECK_FUNCTION( cudaFree(d_pat_matches) );
+		d_pat_matches = d_pat_reduction;
 
 		length_pat_matches = blocks_per_grid_reduction;
 		if (blocks_per_grid_reduction == 1) {
