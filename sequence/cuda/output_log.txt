@@ -114,3 +114,26 @@ Input: srun ./align_m_c 100000 0.35 0.2 0.25 0 0 0 100000 9000 9000 50000 50000 
 
 10.000 1.000.000
 0,4891
+Input: srun ./align_m_c 100000 0.35 0.2 0.25 0 0 0 100000 9000 9000 50000 50000 M 4353435
+Number of runs: 4
+Execution times: [0.348704, 0.389502, 0.401358, 0.386043]
+Average time: 0.38140175 seconds
+Median time: 0.3877725 seconds
+
+Input: srun ./align_m_c 1000000 0.35 0.2 0.25 0 0 0 10000 9000 9000 50000 50000 M 4353435
+Number of runs: 4
+Execution times: [0.554958, 0.544062, 0.554939, 0.506602]
+Average time: 0.54014025 seconds
+Median time: 0.5495005 seconds
+
+Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 500000 500000 M 4353435
+Number of runs: 4
+Execution times: [0.403209, 0.496203, 0.477005, 0.519669]
+Average time: 0.4740215 seconds
+Median time: 0.48660400000000004 seconds
+
+Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 500000 500000 M 4353435
+Number of runs: 4
+Execution times: [0.521422, 0.459933, 0.510707, 0.507626]
+Average time: 0.49992200000000003 seconds
+Median time: 0.5091665000000001 seconds
