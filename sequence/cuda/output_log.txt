@@ -92,3 +92,15 @@ Number of runs: 4
 Execution times: [0.47942, 0.470589, 0.455089, 0.403223]
 Average time: 0.45208025 seconds
 Median time: 0.462839 seconds
+
+Input: srun ./align_m_c 100000 0.35 0.2 0.25 0 0 0 100000 9000 9000 50 100 M 4353435
+Number of runs: 4
+Execution times: [0.269425, 0.325049, 0.317156, 0.330678]
+Average time: 0.310577 seconds
+Median time: 0.32110249999999996 seconds
+
+Input: srun ./align_m_c 1000000 0.35 0.2 0.25 0 0 0 10000 9000 9000 50 100 M 4353435
+Number of runs: 4
+Execution times: [0.652446, 0.554097, 0.613127, 0.628231]
+Average time: 0.61197525 seconds
+Median time: 0.620679 seconds
