@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Reduction correctly implemented but seems has an awful time"
+git commit -m "Correctly done tests with gather on MPI till last commit, now trying reduce"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
