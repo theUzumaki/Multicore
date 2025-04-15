@@ -77,7 +77,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 			atomicAdd(d_pat_matches, 1);
 			d_pat_found[pat] = start + 1;
 			for (lind = 0; lind < length; lind++) {
-				atomicAdd(&d_seq_matches[start + lind], 1);
+				atomicAdd(&d_seq_matches[start + lind + blockIdx.x * blockDim.x], 1);
 			}
 			break;
 		}
@@ -101,43 +101,15 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	}
 }
 
-__global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, int length) {
-	extern __shared__ int all_matches[];
+__global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, int seq_length) {
 
-	int tid = threadIdx.x;
 	int global_idx = blockIdx.x * blockDim.x + tid;
-	int blockid = blockIdx.x;
-	int upper_limit = min(1024, length - blockDim.x * blockIdx.x);
-
-	if (global_idx < length) {
-		all_matches[tid] = d_block_pat_matches[global_idx];
-		
-	} else {
-		all_matches[tid] = 0; // Initialize unused shared memory to avoid undefined behavior
+	
+	if (global_idx >= num_blocks) return;
+	
+	for (int i = 0; i < seq_length; i++) {
+		d_seq_reduction[global_idx] += d_block_seq[global_idx + i];
 	}
-	
-	__syncthreads();
-	
-	if (global_idx >= length) return;
-	
-	// Perform binary tree reduction
-	int red_length = upper_limit;
-	for (int stride = (red_length + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
-		__syncthreads();
-		if (tid + stride < red_length) {
-			all_matches[tid] += all_matches[tid + stride];
-		}
-		
-		red_length = stride;
-		if (stride == 1) {
-			break;
-		}
-		__syncthreads();
-	}
-
-	if (threadIdx.x == 0) {
-		d_total_matches[blockid] = all_matches[0];
-	}	
 }
 
 __global__ void reduced_sum(int *d_block_pat_matches, int *d_total_matches, int length) {
@@ -590,9 +562,6 @@ int main(int argc, char *argv[]) {
 
 	unsigned long *d_pat_found;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_found, sizeof(unsigned long) * pat_per_proc ) );
-
-	int *d_seq_matches;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches, sizeof(int) * seq_length ) );
 	
 	CUDA_CHECK_FUNCTION( cudaHostRegister(pat_length + start_pat, sizeof(unsigned long) * pat_per_proc, cudaHostRegisterDefault) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( d_pat_length, pat_length + start_pat, sizeof(unsigned long) * pat_per_proc, cudaMemcpyHostToDevice ) );
@@ -603,39 +572,42 @@ int main(int argc, char *argv[]) {
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
 	int shared_mem_size = threads_per_block * sizeof(int);
 
+	int *d_block_seq_matches;
+	CUDA_CHECK_FUNCTION( cudaMalloc( &d_block_seq_matches, sizeof(int) * seq_length * blocks_per_grid) );
+	int *d_seq_matches;
+	CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches, sizeof(int) * seq_length ) );
+
 	int *d_pat_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) ) );
 
 	// Launch the search_patterns kernel
-	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
+	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_block_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
-	/*
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
+	
+printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduction);
 
-	int *d_pat_reduction;
+	int *d_seq_matches_reduction;
 	int length_pat_matches = blocks_per_grid;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_reduction, sizeof(int) * blocks_per_grid_reduction ) );
-	while (true) {
-		CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_reduction, sizeof(int) * blocks_per_grid_reduction ) );
-		partial_reduce<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_pat_reduction, length_pat_matches);
-		CUDA_CHECK_KERNEL();
+	if (blocks_per_grid_reduction == 1) {
+		while (true) {
+			CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_reduction, sizeof(int) * seq_length * blocks_per_grid_reduction ) );
+			partial_reduce<<<blocks_per_grid_reduction, threads_per_block_reduction>>>(d_seq_matches_reduction, d_block_seq_matches, blocks_per_grid_reduction, seq_length);
+			CUDA_CHECK_KERNEL();
+	
+			CUDA_CHECK_FUNCTION( cudaFree(d_block_seq_matches) );
+			d_block_seq_matches = d_seq_matches_reduction;
+	
+			if (blocks_per_grid_reduction == 1) {
+				break;
+			}
 
-		CUDA_CHECK_FUNCTION( cudaFree(d_pat_matches) );
-		d_pat_matches = d_pat_reduction;
-
-		length_pat_matches = blocks_per_grid_reduction;
-		if (blocks_per_grid_reduction == 1) {
-			break;
+			length_pat_matches = blocks_per_grid_reduction;
+			blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
 		}
-
-		blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
 	}
-
-	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_total_matches, length_pat_matches);
-	CUDA_CHECK_KERNEL();
-	*/
 
 	/* 9. Copy results back to host */
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found + pat_per_proc * rank, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
