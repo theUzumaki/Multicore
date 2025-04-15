@@ -589,6 +589,19 @@ int main(int argc, char *argv[]) {
 	
 printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduction);
 
+	// Print the contents of d_block_seq_matches for debugging
+	int *h_block_seq_matches = (int *)malloc(sizeof(int) * seq_length * blocks_per_grid);
+	CUDA_CHECK_FUNCTION(cudaMemcpy(h_block_seq_matches, d_block_seq_matches, sizeof(int) * seq_length * blocks_per_grid, cudaMemcpyDeviceToHost));
+
+	printf("Contents of d_block_seq_matches:\n");
+	for (int b = 0; b < blocks_per_grid; b++) {
+		printf("Block %d:\n", b);
+		for (int i = 0; i < seq_length; i++) {
+			printf("%d ", h_block_seq_matches[b * seq_length + i]);
+		}
+		printf("\n");
+	}
+	
 	int *d_seq_matches_reduction;
 	int length_blocks_seq_matches = blocks_per_grid;
 	if (blocks_per_grid_reduction == 1) {
@@ -596,18 +609,31 @@ printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduc
 			CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches_reduction, sizeof(int) * seq_length * length_blocks_seq_matches ) );
 			reduce<<<blocks_per_grid_reduction, threads_per_block_reduction>>>(d_seq_matches_reduction, d_block_seq_matches, length_blocks_seq_matches, seq_length);
 			CUDA_CHECK_KERNEL();
-	
+			
 			CUDA_CHECK_FUNCTION( cudaFree(d_block_seq_matches) );
 			d_block_seq_matches = d_seq_matches_reduction;
-	
+			
+			CUDA_CHECK_FUNCTION(cudaMemcpy(h_block_seq_matches, d_block_seq_matches, sizeof(int) * seq_length * blocks_per_grid, cudaMemcpyDeviceToHost));
+
+			printf("Contents of d_block_seq_matches:\n");
+			for (int b = 0; b < blocks_per_grid; b++) {
+				printf("Block %d:\n", b);
+				for (int i = 0; i < seq_length; i++) {
+					printf("%d ", h_block_seq_matches[b * seq_length + i]);
+				}
+				printf("\n");
+			}
+
 			if (blocks_per_grid_reduction == 1) {
 				break;
 			}
-
+			
 			length_blocks_seq_matches = blocks_per_grid_reduction;
 			blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
 		}
 	}
+
+	free(h_block_seq_matches);
 
 	/* 9. Copy results back to host */
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found + pat_per_proc * rank, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
