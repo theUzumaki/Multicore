@@ -108,6 +108,7 @@ __global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, i
 	if (global_idx >= num_blocks) return;
 	
 	for (int i = 0; i < seq_length; i++) {
+		if (global_idx == 0) printf("SEQ_REDUCTION: %d, BLOCK SEQ: %d\n", d_block_seq[global_idx], d_seq_reduction[global_idx + i]);
 		d_seq_reduction[global_idx] += d_block_seq[global_idx + i];
 	}
 }
@@ -581,26 +582,13 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) ) );
 
 	// Launch the search_patterns kernel
-	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_block_seq_matches, pat_per_proc, seq_length);
+	search_patterns<<<blocks_per_grid, threads_per_block>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_block_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
 	
 printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduction);
-
-	// Print the contents of d_block_seq_matches for debugging
-	int *h_block_seq_matches = (int *)malloc(sizeof(int) * seq_length * blocks_per_grid);
-	CUDA_CHECK_FUNCTION(cudaMemcpy(h_block_seq_matches, d_block_seq_matches, sizeof(int) * seq_length * blocks_per_grid, cudaMemcpyDeviceToHost));
-
-	printf("Contents of d_block_seq_matches:\n");
-	for (int b = 0; b < blocks_per_grid; b++) {
-		printf("Block %d:\n", b);
-		for (int i = 0; i < seq_length; i++) {
-			printf("%d ", h_block_seq_matches[b * seq_length + i]);
-		}
-		printf("\n");
-	}
 	
 	int *d_seq_matches_reduction;
 	int length_blocks_seq_matches = blocks_per_grid;
@@ -615,15 +603,6 @@ printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduc
 			
 			CUDA_CHECK_FUNCTION(cudaMemcpy(h_block_seq_matches, d_block_seq_matches, sizeof(int) * seq_length * blocks_per_grid, cudaMemcpyDeviceToHost));
 
-			printf("Contents of d_block_seq_matches:\n");
-			for (int b = 0; b < blocks_per_grid; b++) {
-				printf("Block %d:\n", b);
-				for (int i = 0; i < seq_length; i++) {
-					printf("%d ", h_block_seq_matches[b * seq_length + i]);
-				}
-				printf("\n");
-			}
-
 			if (blocks_per_grid_reduction == 1) {
 				break;
 			}
@@ -632,8 +611,6 @@ printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduc
 			blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
 		}
 	}
-
-	free(h_block_seq_matches);
 
 	/* 9. Copy results back to host */
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found + pat_per_proc * rank, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
