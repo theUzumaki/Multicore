@@ -129,7 +129,9 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	// Perform binary tree reduction
 	int red_length = upper_limit;
 	
+	if (tid == 0) printf("BLOCK NUMBER %d has red_length = %d\n", blockid, red_length);
 	if (global_idx == 0) printf("BLOCK NUMBER %d has red_length = %d\n", 0, red_length);
+	__synctreads();
 	for (int stride = (red_length + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (global_idx == 0) {
 			printf("Stride = %d, red_length = %d\n", stride, red_length);
