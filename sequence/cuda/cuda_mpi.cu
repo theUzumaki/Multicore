@@ -592,23 +592,21 @@ printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduc
 	
 	int *d_seq_matches_reduction;
 	int length_blocks_seq_matches = blocks_per_grid;
-	if (blocks_per_grid_reduction == 1) {
-		while (true) {
-			printf("INSIDE LOOP\n");
-			CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches_reduction, sizeof(int) * seq_length * length_blocks_seq_matches ) );
-			reduce<<<blocks_per_grid_reduction, threads_per_block_reduction>>>(d_seq_matches_reduction, d_block_seq_matches, length_blocks_seq_matches, seq_length);
-			CUDA_CHECK_KERNEL();
-			
-			CUDA_CHECK_FUNCTION( cudaFree(d_block_seq_matches) );
-			d_block_seq_matches = d_seq_matches_reduction;
+	while (true) {
+		printf("INSIDE LOOP\n");
+		CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches_reduction, sizeof(int) * seq_length * length_blocks_seq_matches ) );
+		reduce<<<blocks_per_grid_reduction, threads_per_block_reduction>>>(d_seq_matches_reduction, d_block_seq_matches, length_blocks_seq_matches, seq_length);
+		CUDA_CHECK_KERNEL();
+		
+		CUDA_CHECK_FUNCTION( cudaFree(d_block_seq_matches) );
+		d_block_seq_matches = d_seq_matches_reduction;
 
-			if (blocks_per_grid_reduction == 1) {
-				break;
-			}
-			
-			length_blocks_seq_matches = blocks_per_grid_reduction;
-			blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
+		if (blocks_per_grid_reduction == 1) {
+			break;
 		}
+		
+		length_blocks_seq_matches = blocks_per_grid_reduction;
+		blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
 	}
 
 	/* 9. Copy results back to host */
