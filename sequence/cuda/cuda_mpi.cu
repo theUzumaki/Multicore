@@ -106,7 +106,7 @@ __global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, i
 	int global_idx = blockIdx.x * blockDim.x + threadIdx.x;
 	
 	if (global_idx >= num_blocks) return;
-	
+	if (threadIdx.x == 0) printf("NEW BLOCK => %d\n", blockIdx.x);
 	for (int i = 0; i < seq_length; i++) {
 		if (i == 0) printf("THREAD %d PUTS %d INTO: %d, FROM: %d\n", global_idx, d_block_seq[global_idx * seq_length + i], blockIdx.x * blockDim.x + i, global_idx * seq_length + i);
 		atomicAdd(&d_seq_reduction[blockIdx.x * blockDim.x + i], d_block_seq[global_idx * seq_length + i]);
@@ -601,6 +601,8 @@ int main(int argc, char *argv[]) {
 		if (blocks_per_grid_reduction == 1) {
 			break;
 		}
+
+		printf("NEW BLOCKS => %d\n", blocks_per_grid_reduction);
 		
 		length_blocks_seq_matches = blocks_per_grid_reduction;
 		blocks_per_grid_reduction = (blocks_per_grid_reduction + threads_per_block_reduction - 1) / threads_per_block_reduction;
