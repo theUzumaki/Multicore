@@ -105,6 +105,7 @@ __global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, i
 
 	int global_idx = blockIdx.x * blockDim.x + threadIdx.x;
 	
+	printf("THREAD: %d\n", global_idx);
 	if (global_idx >= num_blocks) return;
 	
 	for (int i = 0; i < seq_length; i++) {
@@ -571,7 +572,6 @@ int main(int argc, char *argv[]) {
 	/* 8. Launch CUDA kernel */
 	int threads_per_block = 256;
 	int blocks_per_grid = (end_pat - start_pat + threads_per_block - 1) / threads_per_block;
-	int shared_mem_size = threads_per_block * sizeof(int);
 
 	int *d_block_seq_matches;
 	CUDA_CHECK_FUNCTION( cudaMalloc( &d_block_seq_matches, sizeof(int) * seq_length * blocks_per_grid) );
