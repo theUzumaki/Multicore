@@ -136,13 +136,16 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 		if (global_idx == 0) {
 			printf("Stride = %d, red_length = %d\n", stride, red_length);
 		}
+		__syncthreads();
 		if (tid + stride < red_length) {
 			printf("all_matches[%d/%d] = %d + %d\n", tid, global_idx, all_matches[tid], all_matches[tid + stride]);
 			all_matches[tid] += all_matches[tid + stride];
 		}
+		__syncthreads();
 		if (global_idx == 0) {
 			printf("----\n");
 		}
+		__syncthreads();
 		red_length = stride;
 		if (stride == 1) {
 			break;
