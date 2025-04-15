@@ -520,7 +520,7 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
-	MPI_Gather(local_pat_found, pat_per_proc, MPI_UNSIGNED_LONG, pat_found, pat_per_proc, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+	MPI_Gather(local_pat_found + pat_per_proc, pat_per_proc, MPI_UNSIGNED_LONG, pat_found, pat_per_proc, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
