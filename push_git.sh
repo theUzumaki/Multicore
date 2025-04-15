@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Trying to revert to atomicAdd(pat_matches)"
+git commit -m "Reverted since last commit now trying to implement reduction on seq_matches"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 

@@ -103,7 +103,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 
 __global__ void reduce(int *d_seq_reduction, int *d_block_seq, int num_blocks, int seq_length) {
 
-	int global_idx = blockIdx.x * blockDim.x + tid;
+	int global_idx = blockIdx.x * blockDim.x + threadIdx.x;
 	
 	if (global_idx >= num_blocks) return;
 	
@@ -593,8 +593,8 @@ printf("B*G = %d T*B = %d\n", blocks_per_grid_reduction, threads_per_block_reduc
 	int length_pat_matches = blocks_per_grid;
 	if (blocks_per_grid_reduction == 1) {
 		while (true) {
-			CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_reduction, sizeof(int) * seq_length * blocks_per_grid_reduction ) );
-			partial_reduce<<<blocks_per_grid_reduction, threads_per_block_reduction>>>(d_seq_matches_reduction, d_block_seq_matches, blocks_per_grid_reduction, seq_length);
+			CUDA_CHECK_FUNCTION( cudaMalloc( &d_seq_matches_reduction, sizeof(int) * seq_length * blocks_per_grid_reduction ) );
+			reduce<<<blocks_per_grid_reduction, threads_per_block_reduction>>>(d_seq_matches_reduction, d_block_seq_matches, blocks_per_grid_reduction, seq_length);
 			CUDA_CHECK_KERNEL();
 	
 			CUDA_CHECK_FUNCTION( cudaFree(d_block_seq_matches) );
