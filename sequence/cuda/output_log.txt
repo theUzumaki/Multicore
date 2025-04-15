@@ -107,7 +107,10 @@ Median time: 0.620679 seconds
 
 -- TEST WITH BEST VERSION WITH NEW INPUTS
 Input: srun ./align_m_c 100000 0.35 0.2 0.25 0 0 0 100000 9000 9000 50000 50000 M 4353435
-Number of runs: 4
-Execution times: [0.385067, 0.407136, 0.410179, 0.359643]
-Average time: 0.39050625 seconds
-Median time: 0.3961015 seconds
+0,3509
+
+1.000.000 10.000
+0,5075
+
+10.000 1.000.000
+0,4891
