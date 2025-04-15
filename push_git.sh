@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "After failing lots of reduce i have tried with a multi kernel approach, all functioning till previous commit"
+git commit -m "Version with correctly implemented (but slow) reduction between pat matches"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
