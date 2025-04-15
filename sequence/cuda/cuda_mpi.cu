@@ -479,7 +479,7 @@ int main(int argc, char *argv[]) {
 	/* 5. Subdivide work among MPI processes */
 
 	/* 6. Allocate local arrays */
-	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_number);
+	unsigned long *local_pat_found= (unsigned long*)malloc(sizeof(unsigned long) * pat_per_proc);
 	int *local_seq_matches= (int*)malloc(sizeof(int) * seq_length);
 	int local_pat_matches= 0;
 
@@ -515,12 +515,12 @@ int main(int argc, char *argv[]) {
 	CUDA_CHECK_KERNEL();
 
 	/* 9. Copy results back to host */
-	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found + pat_per_proc * rank, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
-	MPI_Gather(local_pat_found, pat_number, MPI_UNSIGNED_LONG, pat_found, pat_number, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
+	MPI_Gather(local_pat_found, pat_per_proc, MPI_UNSIGNED_LONG, pat_found, pat_per_proc, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
 	MPI_Reduce(local_seq_matches, seq_matches, seq_length, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&local_pat_matches, &pat_matches, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
