@@ -113,7 +113,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	int tid = threadIdx.x;
 	int global_idx = blockIdx.x * blockDim.x + tid;
 	int blockid = blockIdx.x;
-	int upper_limit = length - blockDim.x * blockIdx.x;
+	int upper_limit = min(1024, length - blockDim.x * blockIdx.x);
 
 	if (global_idx < length) {
 		all_matches[tid] = d_block_pat_matches[global_idx];
@@ -134,7 +134,7 @@ __global__ void partial_reduce(int *d_block_pat_matches, int *d_total_matches, i
 	__syncthreads();
 	for (int stride = (red_length + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (global_idx == 0) {
-			printf("Stride = %d, red_length = %d\n", stride, red_length);
+			printf("Stride = %d, red_length = %d block %d\n", stride, red_length, blockid);
 		}
 		__syncthreads();
 		if (tid + stride < red_length) {
