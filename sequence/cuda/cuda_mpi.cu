@@ -55,14 +55,8 @@ double cp_Wtime(){
  */
 
 /* ADD KERNELS AND OTHER FUNCTIONS HERE */
-__global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned long *d_pat_length, int *d_block_pat_matches, unsigned long *d_pat_found, int *d_seq_matches, int pat_number, unsigned long seq_length) {
+__global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned long *d_pat_length, int *d_pat_matches, unsigned long *d_pat_found, int *d_seq_matches, int pat_number, unsigned long seq_length) {
 	int pat = blockIdx.x * blockDim.x + threadIdx.x;
-	extern __shared__ int all_matches[];
-
-	if (threadIdx.x < blockDim.x) {
-		all_matches[threadIdx.x] = 0;
-	}
-	__syncthreads();
 	if (pat >= pat_number) return;
 
 	unsigned long start, lind;
@@ -80,7 +74,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 		}
 
 		if (found) {
-			all_matches[threadIdx.x] = 1;
+			atomicAdd(d_pat_matches, 1);
 			d_pat_found[pat] = start + 1;
 			for (lind = 0; lind < length; lind++) {
 				atomicAdd(&d_seq_matches[start + lind], 1);
@@ -93,7 +87,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	int red_length = blockDim.x;
 	for (int stride = (blockDim.x + 1) / 2; stride > 0; stride = ( stride + 1 ) / 2) {
 		if (threadIdx.x + stride < red_length) {
-			all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
+			//all_matches[threadIdx.x] += all_matches[threadIdx.x + stride];
 		}
 		red_length = stride;
 		if (stride == 1) {
@@ -103,7 +97,7 @@ __global__ void search_patterns(char *d_sequence, char **d_pattern, unsigned lon
 	}
 
 	if (threadIdx.x == 0) {
-		d_block_pat_matches[blockIdx.x] = all_matches[0];
+		//d_block_pat_matches[blockIdx.x] = all_matches[0];
 	}
 }
 
@@ -610,14 +604,13 @@ int main(int argc, char *argv[]) {
 	int shared_mem_size = threads_per_block * sizeof(int);
 
 	int *d_pat_matches;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) * blocks_per_grid ) );
-	int *d_total_matches;
-	CUDA_CHECK_FUNCTION( cudaMalloc( &d_total_matches, sizeof(int) ) );
+	CUDA_CHECK_FUNCTION( cudaMalloc( &d_pat_matches, sizeof(int) ) );
 
 	// Launch the search_patterns kernel
 	search_patterns<<<blocks_per_grid, threads_per_block, shared_mem_size>>>(d_sequence, d_pattern, d_pat_length, d_pat_matches, d_pat_found, d_seq_matches, pat_per_proc, seq_length);
 	CUDA_CHECK_KERNEL();
 
+	/*
 	int threads_per_block_reduction = min(1024, blocks_per_grid);
 	int blocks_per_grid_reduction = (blocks_per_grid + threads_per_block_reduction - 1) / threads_per_block_reduction;
 
@@ -642,11 +635,12 @@ int main(int argc, char *argv[]) {
 
 	reduced_sum<<<blocks_per_grid_reduction, threads_per_block_reduction, threads_per_block_reduction * sizeof(int)>>>(d_pat_matches, d_total_matches, length_pat_matches);
 	CUDA_CHECK_KERNEL();
+	*/
 
 	/* 9. Copy results back to host */
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_pat_found + pat_per_proc * rank, d_pat_found, sizeof(unsigned long) * pat_per_proc, cudaMemcpyDeviceToHost ) );
 	CUDA_CHECK_FUNCTION( cudaMemcpy( local_seq_matches, d_seq_matches, sizeof(int) * seq_length, cudaMemcpyDeviceToHost ) );
-	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_total_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
+	CUDA_CHECK_FUNCTION( cudaMemcpy( &local_pat_matches, d_pat_matches, sizeof(int), cudaMemcpyDeviceToHost ) );
 
 	/* 10. Gather results from all MPI processes */
 	MPI_Gather(local_pat_found, pat_per_proc, MPI_UNSIGNED_LONG, pat_found, pat_per_proc, MPI_UNSIGNED_LONG, 0, MPI_COMM_WORLD);
