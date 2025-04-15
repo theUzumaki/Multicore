@@ -74,21 +74,6 @@ Execution times: [0.417799, 0.498985, 0.479127, 0.512968]
 Average time: 0.47721975 seconds
 Median time: 0.48905600000000005 seconds
 
-FAILED
-Input: srun ./align_m_c 1000000 0.35 0.2 0.25 0 0 0 10000 9000 9000 50 100 M 4353435
-Number of runs: 4
-Execution times: [1.589004, 1.879971, 1.606062, 1.858789]
-Average time: 1.7334565 seconds
-Median time: 1.7324255000000002 seconds
-
-FAILED
-Input: srun ./align_m_c 100000 0.35 0.2 0.25 0 0 0 100000 9000 9000 50 100 M 4353435
-Number of runs: 4
-Execution times: [0.45599, 0.386477, 0.380792, 0.450005]
-Average time: 0.418316 seconds
-Median time: 0.418241 seconds
-
-
 Input: srun ./align_m_c 100000 0.35 0.2 0.25 0 0 0 1030 9000 9000 50 100 M 4353435
 Number of runs: 4
 Execution times: [0.243722, 0.252417, 0.26337, 0.231256]
@@ -101,18 +86,7 @@ Execution times: [0.497402, 0.512503, 0.501369, 0.432161]
 Average time: 0.48585875 seconds
 Median time: 0.4993855 seconds
 
-Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
-Number of runs: 4
-Execution times: [0.372009, 0.461207, 0.393109, 0.453396]
-Average time: 0.41993025 seconds
-Median time: 0.42325250000000003 seconds
-
-Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
-Number of runs: 4
-Execution times: [0.374715, 0.452595, 0.48074, 0.464777]
-Average time: 0.44320675 seconds
-Median time: 0.45868600000000004 seconds
-
+-- REDUCTION SEQ_MATCHES MULTI KERNEL
 Input: srun ./align_m_c 10000 0.35 0.2 0.25 0 0 0 1000000 9000 9000 50 100 M 4353435
 Number of runs: 4
 Execution times: [0.47942, 0.470589, 0.455089, 0.403223]
