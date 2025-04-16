@@ -4,7 +4,7 @@
 git add .
 
 # Commit with a message
-git commit -m "Correctly done tests with gather on MPI till last commit, now trying reduce"
+git commit -m "Final commit"
 
 REPO_URL="github.com/theUzumaki/Multicore.git"
 
