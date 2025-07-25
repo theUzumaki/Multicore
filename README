@@ -1,1 +1,6 @@
-Repository of git for the multicore exam, AY: 2024/2025
+Multicore programming project for Computer Science Degree
+A.Y. 2024/2025 Sapienza University of Rome
+
+DNA sampling problem solved with bruteforce approach implemented in two different multicore solution.
+One solution utilizes the OpenMP framework and the other one a combination of CUDA and MPI in order to maximise the parallelism through both CPU and GPU.
+Inside the repository there is also a PDF explaining the work flow used and the results obtained.
